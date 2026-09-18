@@ -77,12 +77,12 @@ Google Sheet
 Every other team leader just opens the live link, enters the passcode, and pastes the same URL in
 Settings once. After that their browser stays in sync automatically.
 
-### e. (Optional) bake the URL in so nobody has to paste it
-Edit `index.html`, find near the bottom:
-```js
-var DEFAULT_API_URL = '';
-```
-put your `/exec` URL between the quotes, commit. Then the app connects on first load for everyone.
+### e. Already done: the URL is baked in
+`index.html` ships with the deployed `/exec` URL in `DEFAULT_API_URL`, so every browser connects on
+first load — team leaders only enter the passcode. Settings > Cloud Sync is there to override it or
+to disconnect. If you ever **re-deploy** the script as a *new deployment* (rather than editing the
+existing one), the URL changes and you must update `DEFAULT_API_URL` and commit. Editing the
+existing deployment via **Manage deployments** keeps the URL stable — prefer that.
 
 ## 4. Changing the passcode
 
