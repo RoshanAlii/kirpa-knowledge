@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kirpa Knowledge</title>
+<style>
+:root{--orange:#ff6d13;--orange2:#ff7b22;--ink:#111827;--text:#1c2738;--muted:#748094;--line:#e5e7eb;--soft:#f8fafc;--red:#ff2b2b;--amber:#f28b16;--yellow:#f5b416;--green:#199b38;--deepgreen:#0e7b2c;--blue:#2563eb}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--ink);background:#fff}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}.hidden{display:none!important}
+.app{min-height:100vh;display:grid;grid-template-columns:220px minmax(0,1fr)}
+.sidebar{height:100vh;position:sticky;top:0;background:linear-gradient(180deg,#fff9f4 0%,#fff 20%,#fafafa 100%);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:40}.brand{height:92px;display:flex;align-items:center;padding:12px 26px;background:linear-gradient(180deg,#fff2e6 0%,#fff 100%);border-bottom:1px solid #f1f1f1}.brand img{width:166px;height:auto;display:block}.nav{padding:0}.nav-item{height:44px;display:flex;align-items:center;gap:12px;padding:0 27px;color:#41506a;font-size:15px;border:0;background:transparent;width:100%;text-align:left}.nav-item svg,.bottom-link svg{width:20px;height:20px;stroke:#60708a;stroke-width:1.8;fill:none;flex:0 0 auto}.nav-item.active{background:linear-gradient(90deg,#ff7a1a,#ff6c10);color:#fff;box-shadow:0 5px 14px rgba(255,103,15,.18)}.nav-item.active svg{stroke:#fff}.nav-item:hover:not(.active),.bottom-link:hover{background:#fff5ed}.nav-spacer{flex:1}.sidebar-version{padding:21px 27px 8px;color:#a0a8b5;font-size:11px;line-height:1.7}.bottom-link{height:43px;display:flex;align-items:center;gap:12px;padding:0 27px;color:#41506a;font-size:15px;background:none;border:0;width:100%;text-align:left}
+.main{min-width:0;min-height:100vh;background:linear-gradient(180deg,#fff 0%,#fff 83%,#fffaf6 100%);display:flex;flex-direction:column}.topbar{height:82px;border-bottom:1px solid #e9eaed;display:flex;align-items:center;padding:0 23px 0 36px;gap:24px;background:rgba(255,255,255,.97);position:sticky;top:0;z-index:30}.title-wrap{min-width:340px}.title-wrap h1{font-size:29px;line-height:1;margin:0 0 8px;font-weight:850;letter-spacing:-.8px}.tagline{color:#6d7480;font-size:15px;word-spacing:4px}.top-actions{margin-left:auto;display:flex;align-items:center;gap:14px}.filter-select{height:38px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#455163;font-size:13px;min-width:150px;padding:0 34px 0 13px}.filter-select.week{min-width:205px}.profile{display:flex;align-items:center;gap:11px;margin-left:20px}.avatar{width:38px;height:38px;border-radius:50%;background:#df4e03;color:#fff;display:grid;place-items:center;font-weight:750;font-size:13px}.profile-meta strong{display:block;font-size:14px}.profile-meta span{display:block;font-size:12px;color:#8390a2;margin-top:3px}
+.content{padding:38px 20px 18px;max-width:1316px;width:100%;margin:0 auto;flex:1}.view{display:none}.view.active{display:block}.add-row{display:flex;justify-content:flex-end;height:0;position:relative;z-index:2}.add-btn{position:absolute;top:-36px;right:0;border:0;background:linear-gradient(180deg,#ff7919,#ff6510);color:#fff;font-weight:750;border-radius:7px;height:38px;padding:0 20px;font-size:14px;box-shadow:0 4px 13px rgba(255,100,15,.25)}.add-btn b{font-size:20px;vertical-align:-1px;margin-right:8px}.footer{height:41px;border-top:1px solid #eef0f2;display:flex;align-items:center;padding:0 26px;font-size:11px;color:#718096}.footer-brand{margin-left:auto;color:#ff5f0d;letter-spacing:2px;font-size:12px;display:flex;align-items:center;gap:18px}.footer-brand:before{content:"";width:68px;height:2px;background:#ff5f0d}
+.metrics{display:grid;grid-template-columns:1.55fr repeat(4,.92fr);gap:16px;margin-bottom:20px}.card{border:1px solid #e2e5ea;border-radius:9px;background:#fff;box-shadow:0 2px 6px rgba(23,36,56,.03)}.score-card{height:148px;padding:11px 14px}.score-card h2,.section-card h2{margin:0;font-size:16px;font-weight:850}.score-body{display:flex;align-items:center;height:112px;padding:3px 7px 0 22px}.ring{width:108px;height:108px;border-radius:50%;position:relative;flex:0 0 auto;background:conic-gradient(var(--orange) 0deg,#e9eaec 0)}.ring:before{content:"";position:absolute;inset:13px;background:#fff;border-radius:50%}.ring-center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}.ring-center strong{font-size:29px;line-height:1}.ring-center span{font-size:10px;color:#687386;margin-top:3px}.score-copy{margin-left:34px}.baseline{color:#16a236;font-size:13px;font-weight:750}.baseline.neutral{color:#6b7280}.score-copy .sub{font-size:12px;color:#647083;margin-top:7px}.score-copy .base{font-size:11px;color:#687386;margin-top:18px;line-height:1.45}.metric{height:148px;padding:23px 21px 17px;position:relative;overflow:hidden}.metric::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.35),rgba(255,255,255,0));pointer-events:none}.metric.red{background:#fff0f0}.metric.orange{background:#fff5e7}.metric.yellow{background:#fff9d9}.metric.green{background:#eefced}.people-icon{font-size:21px}.metric.red .people-icon,.metric.red .label{color:#fb2020}.metric.orange .people-icon,.metric.orange .label{color:#e77600}.metric.yellow .people-icon,.metric.yellow .label{color:#eea600}.metric.green .people-icon,.metric.green .label{color:#14972d}.metric strong{display:block;font-size:28px;margin-top:5px;line-height:1}.metric .label{font-size:14px;font-weight:750;margin-top:7px}.metric .pct{position:absolute;right:17px;bottom:16px;font-size:13px;font-weight:750}.metric.red .pct{color:#ff1e1e}.metric.orange .pct{color:#ff4d00}.metric.yellow .pct{color:#757100}.metric.green .pct{color:#118223}
+.midgrid{display:grid;grid-template-columns:1.12fr 1.28fr .87fr;gap:16px;margin-bottom:17px}.section-card{height:200px;padding:12px 13px}.chart-area{height:158px;margin-top:3px;position:relative}.gridline{height:1px;background:#e9ebef;position:absolute;left:25px;right:0}.g1{top:20px}.g2{top:54px}.g3{top:88px}.g4{top:122px}.ylabels{position:absolute;left:0;top:10px;height:130px;display:flex;flex-direction:column;justify-content:space-between;font-size:10px;color:#40506a}.bars{position:absolute;left:42px;right:5px;bottom:25px;height:119px;display:flex;align-items:flex-end;justify-content:space-around}.barwrap{height:100%;width:20%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;position:relative}.barvalue{font-weight:750;font-size:14px;margin-bottom:4px}.bar{width:52px;border-radius:2px 2px 0 0;min-height:2px}.bar.red{background:linear-gradient(#ff3030,#ff2626)}.bar.orange{background:linear-gradient(#ff9b25,#ff7b10)}.bar.yellow{background:linear-gradient(#ffde3b,#ffc824)}.bar.green{background:linear-gradient(#61c45b,#42aa42)}.xlabel{position:absolute;bottom:-20px;font-size:11px;color:#27354b;white-space:nowrap}.area-list{margin-top:14px}.area-row{display:grid;grid-template-columns:190px 1fr 48px;align-items:center;gap:10px;margin:12px 0;font-size:12px;color:#253047}.progress{height:14px;background:#eceeef;border-radius:3px;overflow:hidden}.progress i{display:block;height:100%;background:linear-gradient(90deg,#ff7c13,#ff6413);border-radius:3px}.area-row b{text-align:right;font-size:13px}.gap-list{margin-top:11px}.gap-row{display:grid;grid-template-columns:28px 1fr 54px;align-items:center;gap:7px;height:30px;border-bottom:1px solid #eef0f2;font-size:12px;color:#273348}.gap-row:last-child{border-bottom:0}.rank{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:750;font-size:11px}.r1{background:#ff312d}.r2{background:#ff7c12}.r3{background:#ffad18}.r4{background:#f5b522}.r5{background:#35a846}.gap-row b{text-align:right;font-size:13px}.c-red{color:#ff211f}.c-orange{color:#ff5b00}.c-olive{color:#9a8d00}.c-green{color:#14952b}
+.level-title{font-size:18px;font-weight:850;margin:0 0 8px 2px}.levelgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}.level-card{height:246px;border:1px solid #e3e6ea;border-radius:9px;background:#fff;overflow:hidden}.level-head{height:33px;display:flex;align-items:center;padding:0 13px;font-size:13px;font-weight:850}.level-head .level-icon{margin-right:9px;font-size:18px}.level-head.poor{background:#fff0f0;color:#ff2020}.level-head.weak{background:#fff4e4;color:#ff6500}.level-head.good{background:#fff8dc;color:#f0a800}.level-head.very{background:#eaf9e9;color:#14982d}.agent-row{height:28px;border-bottom:1px solid #eef0f2;display:grid;grid-template-columns:30px 1fr 1.1fr;align-items:center;padding:0 12px;font-size:12px;cursor:pointer}.agent-row:hover{background:#fff8f2}.initial{width:21px;height:21px;border-radius:50%;background:#ff7719;color:#fff;display:grid;place-items:center;font-size:9px;font-weight:750}.initial.outline{background:#fff;border:1.5px solid #ff5014;color:#2b2b2b}.agent-row .name{color:#16233a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.agent-row .team{color:#7f8b9e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.more{height:28px;padding:8px 13px;font-size:12px;color:#708097;cursor:pointer}.more:hover{color:var(--orange)}.empty-line{padding:20px;color:#9aa3b1;font-size:12px}.insights{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.insight-card{height:165px;border:1px solid #e3e6ea;border-radius:9px;background:#fff;overflow:hidden}.insight-head{height:31px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #eef0f2;font-size:12px;font-weight:850}.insight-head .ih-icon{font-size:18px;margin-right:8px}.insight-head .view{margin-left:auto;font-size:10px;color:#ff5f0d;font-weight:550;cursor:pointer}.insight-head.att,.insight-head.dec{color:#ff2020}.insight-head.imp{color:#14952b}.insight-head.rec{color:#ff6a00}.insight-row{height:25px;border-bottom:1px solid #eef0f2;display:grid;grid-template-columns:1fr 58px 20px;align-items:center;padding:0 12px;font-size:11px;color:#243249;cursor:pointer}.insight-row:hover{background:#fff9f4}.insight-row b{text-align:right}.redtxt{color:#ff2020}.greentxt{color:#12942f}.orangetxt{color:#ff6d13}.arr{text-align:right}.days{grid-column:2/4;text-align:right;color:#34435a}.review-strip{border:1px solid #ffd2ad;background:#fff7ef;color:#7b4a23;border-radius:8px;padding:9px 12px;font-size:11px;margin:-4px 0 14px}.review-strip strong{color:#ff6710}
+.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:18px}.page-head h2{font-size:28px;margin:0 0 5px;letter-spacing:-.6px}.page-head p{margin:0;color:#7a8494}.btn{border:0;border-radius:8px;padding:10px 15px;font-weight:750}.btn-primary{background:linear-gradient(180deg,#ff7919,#ff6510);color:#fff;box-shadow:0 3px 10px rgba(255,100,15,.2)}.btn-secondary{background:#f1f3f5;color:#344155}.btn-danger{background:#fff0f0;color:#c32727}.btn-outline{background:#fff;border:1px solid #dfe3e8;color:#344155}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.field,textarea{border:1px solid #dfe3e8;border-radius:8px;background:#fff;padding:10px 11px;color:#273348;outline:none}.field:focus,textarea:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,109,19,.11)}.field{height:40px}.panel{background:#fff;border:1px solid #e3e6ea;border-radius:10px;padding:18px;box-shadow:0 2px 6px rgba(23,36,56,.03);margin-bottom:18px}.panel h3{margin:0 0 12px}.table-wrap{overflow:auto}.data-table{width:100%;border-collapse:collapse}.data-table th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:#7a8494;text-align:left;border-bottom:1px solid #e7e9ec;padding:10px}.data-table td{padding:11px 10px;border-bottom:1px solid #eef0f2;font-size:12px;vertical-align:middle}.data-table tr:hover td{background:#fffaf6}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:10px;font-weight:800}.b1{background:#ffe8e8;color:#bd2929}.b2{background:#fff0dc;color:#9c5c0d}.b3{background:#fff7d5;color:#9a7600}.b4{background:#e6f6e8;color:#176c2c}.b0{background:#eef1f4;color:#6d7786}.bReview{background:#fff0e3;color:#bd5b10}.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.team-card{cursor:pointer;transition:.15s}.team-card:hover{transform:translateY(-2px);border-color:#ffd0ac}.team-card h3{font-size:21px;margin:4px 0 5px}.team-card .tl{color:#8a6d59;font-size:12px}.team-meta{display:flex;gap:14px;margin:12px 0 8px;font-size:11px;color:#738095}.team-members{margin-top:12px}.team-person{display:flex;justify-content:space-between;border-bottom:1px solid #eef0f2;padding:7px 0;font-size:12px}.score-big{font-size:30px;font-weight:850}.form-row{display:grid;grid-template-columns:175px 220px 260px 1fr auto;gap:10px;align-items:end}.weekly-grid{display:grid;gap:10px}.assessment-person{border:1px solid #e5e8eb;border-radius:9px;padding:12px;display:grid;grid-template-columns:180px 1fr 1.3fr;gap:14px;align-items:center}.person-name strong{display:block}.person-name span{font-size:11px;color:#8a94a3}.level-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.level-btn{border:1px solid #dfe3e8;background:#fff;border-radius:7px;padding:8px 6px;font-size:10px;color:#5f6d80}.level-btn.selected[data-level="1"]{background:#fff0f0;border-color:#ff7d7d;color:#c52323}.level-btn.selected[data-level="2"]{background:#fff4e4;border-color:#f1ac54;color:#965600}.level-btn.selected[data-level="3"]{background:#fff8dc;border-color:#f6d15d;color:#8a6b00}.level-btn.selected[data-level="4"]{background:#eaf9e9;border-color:#72c37b;color:#176b2b}.comment-input{width:100%;height:38px}.agent-link{font-weight:750;color:#243249;cursor:pointer}.agent-link:hover{color:var(--orange)}.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{padding:16px;border:1px solid #e4e7ea;border-radius:9px}.kpi span{display:block;font-size:10px;color:#7f8998;text-transform:uppercase}.kpi strong{font-size:25px;margin-top:6px;display:block}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.notice{padding:11px 13px;border-radius:8px;background:#fff7ef;border:1px solid #ffd6b3;color:#754d2e;font-size:12px}.danger-zone{border-color:#f4caca;background:#fffafa}
+.modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.42);display:none;align-items:center;justify-content:center;z-index:100;padding:24px}.modal-backdrop.open{display:flex}.modal{width:min(760px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,.2);border:1px solid #e4e6e9}.modal-head{display:flex;justify-content:space-between;align-items:flex-start;padding:18px 20px;border-bottom:1px solid #eceef1}.modal-head h3{margin:0;font-size:22px}.close{width:34px;height:34px;border:0;border-radius:50%;background:#f2f3f5;font-size:20px}.modal-body{padding:20px}.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini-kpi{border:1px solid #e6e9ec;border-radius:8px;padding:12px}.mini-kpi span{display:block;color:#7b8798;font-size:10px;text-transform:uppercase}.mini-kpi strong{display:block;margin-top:5px;font-size:20px}.history-list{margin-top:16px}.history-entry{display:grid;grid-template-columns:120px 90px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid #eef0f2;font-size:12px}.toast{position:fixed;right:22px;bottom:22px;background:#1f2937;color:#fff;border-radius:9px;padding:12px 15px;font-size:12px;z-index:200;opacity:0;transform:translateY(10px);transition:.18s}.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:1100px){.app{grid-template-columns:78px 1fr}.brand{padding:16px 8px}.brand img{width:68px}.nav-item,.bottom-link{padding:0 24px;font-size:0}.sidebar-version{display:none}.title-wrap{min-width:260px}.profile-meta{display:none}.metrics{grid-template-columns:repeat(2,1fr)}.score-card{grid-column:span 2}.midgrid{grid-template-columns:1fr}.section-card{height:auto;min-height:200px}.levelgrid,.insights{grid-template-columns:repeat(2,1fr)}.team-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.app{display:block}.sidebar{height:auto;position:relative;display:block;border-right:0}.brand{height:70px}.brand img{width:145px}.nav{display:flex;overflow:auto}.nav-item{font-size:12px;padding:0 15px;white-space:nowrap}.nav-item svg{display:none}.nav-spacer,.sidebar-bottom{display:none}.topbar{position:relative;height:auto;padding:15px 16px;flex-wrap:wrap}.title-wrap{min-width:100%;}.top-actions{margin:0;width:100%;flex-wrap:wrap}.profile{margin-left:auto}.content{padding:20px 12px}.metrics,.levelgrid,.insights,.team-grid,.report-grid,.settings-grid,.kpi-row{grid-template-columns:1fr}.score-card{grid-column:auto}.midgrid{grid-template-columns:1fr}.assessment-person{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.modal-grid{grid-template-columns:1fr}.history-entry{grid-template-columns:90px 75px 1fr}.add-btn{position:static;margin-bottom:12px}.add-row{height:auto;justify-content:flex-start}.filter-select.week{min-width:170px}}
+
+/* ==== cloud sync + passcode gate (added for GitHub Pages deployment) ==== */
+.gate{position:fixed;inset:0;z-index:9000;background:linear-gradient(160deg,#fff4ea 0%,#ffffff 45%,#f7f8fa 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+.gate.done{display:none}
+.gate-card{width:100%;max-width:360px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px 26px;box-shadow:0 18px 48px rgba(17,24,39,.10)}
+.gate-logo{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.gate-sub{margin:6px 0 18px;color:var(--muted);font-size:13px;line-height:1.5}
+.gate .field{width:100%}
+.gate-remember{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--muted)}
+.gate-remember input{width:auto;margin:0}
+.gate-err{margin-top:10px;font-size:12px;color:var(--red);min-height:16px}
+.sync-pill{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12px;color:#41506a;white-space:nowrap}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#c3cad6;flex:0 0 auto}
+.sync-pill.ok .sync-dot{background:var(--green)}
+.sync-pill.busy .sync-dot{background:var(--amber);animation:syncPulse 1s infinite}
+.sync-pill.err .sync-dot{background:var(--red)}
+.sync-pill.off .sync-dot{background:#c3cad6}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.25}}
+.sync-grid{display:grid;gap:10px;margin-top:12px}
+.sync-grid label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.sync-grid .field{width:100%}
+.sync-status-line{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;word-break:break-word}
+@media print{.gate{display:none!important}}
+
+</style>
+</head>
+<body>
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <div class="gate-logo">Kirpa Knowledge</div>
+    <p class="gate-sub">Enter the team passcode to open the dashboard.</p>
+    <input id="gateInput" class="field" type="password" placeholder="Passcode" autocomplete="current-password">
+    <label class="gate-remember"><input id="gateRemember" type="checkbox" checked> Remember this device for 7 days</label>
+    <button id="gateBtn" class="btn btn-primary" style="width:100%;margin-top:12px">Open Dashboard</button>
+    <div id="gateErr" class="gate-err"></div>
+  </div>
+</div>
+
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><img src="data:image/png;base64,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" alt="Kirpa"></div>
+  <div class="nav" id="nav">
+    <button class="nav-item active" data-view="dashboard"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5z"/><path d="M9 21v-6h6v6"/></svg>Dashboard</button>
+    <button class="nav-item" data-view="assess"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Assess</button>
+    <button class="nav-item" data-view="agents"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7"/></svg>Agents</button>
+    <button class="nav-item" data-view="teams"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 21c0-4 2.7-7 6-7s6 3 6 7M14 16c3.3 0 6 2.2 6 5"/></svg>Teams</button>
+    <button class="nav-item" data-view="reports"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Reports</button>
+    <button class="nav-item" data-view="admin"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></svg>Admin</button>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="sidebar-bottom">
+    <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
+    <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.2 · Area Assessments</div>
+  </div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <div class="title-wrap"><h1>Kirpa Knowledge</h1><div class="tagline">People&nbsp;&nbsp;|&nbsp;&nbsp;Knowledge&nbsp;&nbsp;|&nbsp;&nbsp;Stronger Together</div></div>
+  <div class="top-actions">
+    <span id="syncPill" class="sync-pill off" title="Cloud sync status"><span class="sync-dot"></span><span id="syncPillText">Local only</span></span>
+    <select id="weekFilter" class="filter-select week"></select>
+    <select id="teamFilter" class="filter-select"></select>
+    <div class="profile"><div class="avatar">RA</div><div class="profile-meta"><strong>Roshan Ali</strong><span>Management</span></div></div>
+  </div>
+</header>
+<div class="content">
+<section id="view-dashboard" class="view active">
+  <div class="add-row"><button class="add-btn" id="addAssessmentBtn"><b>＋</b>Add Assessment</button></div>
+  <div id="reviewStrip" class="review-strip hidden"></div>
+  <div class="metrics">
+    <div class="card score-card"><h2>Company Knowledge Score</h2><div class="score-body"><div class="ring" id="scoreRing"><div class="ring-center"><strong id="companyScore">0%</strong><span>Knowledge</span></div></div><div class="score-copy"><div id="movementText" class="baseline neutral">Baseline week</div><div id="coverageText" class="sub">0% assessment coverage</div><div id="scoreBase" class="base"></div></div></div></div>
+    <div class="card metric red"><div class="people-icon">♟</div><strong id="poorCount">0</strong><div class="label">Poor</div><div class="pct" id="poorPct">0%</div></div>
+    <div class="card metric orange"><div class="people-icon">♟</div><strong id="weakCount">0</strong><div class="label">Weak</div><div class="pct" id="weakPct">0%</div></div>
+    <div class="card metric yellow"><div class="people-icon">♟</div><strong id="goodCount">0</strong><div class="label">Good</div><div class="pct" id="goodPct">0%</div></div>
+    <div class="card metric green"><div class="people-icon">♟</div><strong id="veryCount">0</strong><div class="label">Very Good</div><div class="pct" id="veryPct">0%</div></div>
+  </div>
+  <div class="midgrid">
+    <div class="card section-card"><h2>Knowledge Distribution</h2><div class="chart-area"><div class="gridline g1"></div><div class="gridline g2"></div><div class="gridline g3"></div><div class="gridline g4"></div><div class="ylabels"><span id="yMax">10</span><span></span><span></span><span></span><span>0</span></div><div class="bars" id="distributionBars"></div></div></div>
+    <div class="card section-card"><h2>Average Scores by Knowledge Area</h2><div class="area-list" id="teamScores"></div></div>
+    <div class="card section-card"><h2>Knowledge Gaps (Training Priority)</h2><div class="gap-list" id="trainingGaps"></div></div>
+  </div>
+  <h2 class="level-title">Agents by Knowledge Level</h2>
+  <div class="levelgrid" id="levelGrid"></div>
+  <div class="insights" id="insightGrid"></div>
+</section>
+
+<section id="view-assess" class="view">
+  <div class="page-head"><div><h2>Weekly Assessment</h2><p>Select the knowledge area first, then assess the whole team on that specific area.</p></div><div class="toolbar"><button class="btn btn-secondary" id="assessBack">Back to Dashboard</button><button class="btn btn-primary" id="saveWeekBtn">Save Weekly Assessment</button></div></div>
+  <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><div class="notice">Choose one level per agent for the selected knowledge area. You can switch areas and assess the same team separately for each area.</div><button class="btn btn-outline" id="clearTeamForm">Clear Form</button></div></div>
+  <div class="panel"><div id="weeklyGrid" class="weekly-grid"></div></div>
+</section>
+
+<section id="view-agents" class="view">
+  <div class="page-head"><div><h2>Agents</h2><p>Current position, latest comment and weekly history.</p></div><div class="toolbar"><input id="agentSearch" class="field" placeholder="Search agent"><select id="agentTeamFilter" class="field"></select><select id="agentLevelFilter" class="field"><option value="ALL">All levels</option><option value="1">Poor</option><option value="2">Weak</option><option value="3">Good</option><option value="4">Very Good</option><option value="NA">Not assessed</option><option value="REVIEW">Needs review</option></select></div></div>
+  <div class="panel table-wrap"><table class="data-table"><thead><tr><th>Agent</th><th>Team</th><th>Current Level</th><th>Score</th><th>Latest Comment</th><th>Week</th></tr></thead><tbody id="agentsBody"></tbody></table></div>
+</section>
+
+<section id="view-teams" class="view">
+  <div class="page-head"><div><h2>Teams</h2><p>Live team-level view for the selected week.</p></div></div>
+  <div class="team-grid" id="teamGrid"></div>
+</section>
+
+<section id="view-reports" class="view">
+  <div class="page-head"><div><h2>Reports</h2><p>Weekly coverage, distribution and downloadable management data.</p></div><div class="toolbar"><button class="btn btn-outline" id="exportCsvBtn">Download CSV</button><button class="btn btn-outline" id="printBtn">Print Report</button></div></div>
+  <div class="kpi-row" id="reportKpis"></div>
+  <div class="report-grid" style="margin-top:18px"><div class="panel"><h3>Weekly Summary</h3><div class="table-wrap"><table class="data-table"><thead><tr><th>Week</th><th>Assessed</th><th>Coverage</th><th>Avg Score</th><th>Poor</th><th>Weak</th><th>Good</th><th>Very Good</th></tr></thead><tbody id="weeklyReportBody"></tbody></table></div></div><div class="panel"><h3>Current Team Summary</h3><div class="table-wrap"><table class="data-table"><thead><tr><th>Team</th><th>Members</th><th>Assessed</th><th>Coverage</th><th>Score</th></tr></thead><tbody id="teamReportBody"></tbody></table></div></div></div>
+</section>
+
+<section id="view-admin" class="view">
+  <div class="page-head"><div><h2>Admin</h2><p>Manage the active roster used by weekly assessments.</p></div></div>
+  <div class="panel"><h3>Add Agent</h3><div class="toolbar"><input id="newAgentName" class="field" placeholder="Full name"><select id="newAgentTeam" class="field"></select><button class="btn btn-primary" id="addAgentBtn">Add Agent</button></div></div>
+  <div class="panel table-wrap"><table class="data-table"><thead><tr><th>Agent</th><th>Team</th><th>Team Leader?</th><th>Status</th><th>Action</th></tr></thead><tbody id="adminBody"></tbody></table></div>
+</section>
+
+<section id="view-settings" class="view">
+  <div class="page-head"><div><h2>Settings</h2><p>Cloud sync, backup, restore or reset.</p></div></div>
+  <div class="settings-grid"><div class="panel"><h3>Cloud Sync (Google Sheet)</h3><p class="notice">When connected, every assessment saved here is written to a shared Google Sheet, and this browser pulls changes made by other team leaders. Leave it blank to keep working offline in this browser only.</p>
+    <div class="sync-grid">
+      <div><label>Apps Script Web App URL</label><input id="syncUrl" class="field" placeholder="https://script.google.com/macros/s/.../exec"></div>
+      <div><label>Shared token</label><input id="syncToken" class="field" placeholder="kirpa_..."></div>
+    </div>
+    <div class="toolbar" style="margin-top:14px"><button class="btn btn-primary" id="syncSaveBtn">Connect &amp; Sync</button><button class="btn btn-outline" id="syncPullBtn">Pull from Sheet</button><button class="btn btn-outline" id="syncPushBtn">Push to Sheet</button><button class="btn btn-outline" id="syncClearBtn">Disconnect</button></div>
+    <div class="sync-status-line" id="syncStatusLine">Not connected.</div></div><div class="panel"><h3>Data Backup</h3><p class="notice">This single-file version stores data in this browser using localStorage. Export a backup before moving to another device.</p><div class="toolbar" style="margin-top:14px"><button class="btn btn-primary" id="exportJsonBtn">Export Backup</button><label class="btn btn-outline" style="display:inline-flex;align-items:center">Import Backup<input id="importJsonInput" type="file" accept="application/json" hidden></label></div></div><div class="panel danger-zone"><h3>Reset Demo / Paper Data</h3><p>Restore the original 40-person roster and the handwritten week-ending 11 Sep 2026 records.</p><button class="btn btn-danger" id="resetDataBtn">Reset to Original Data</button></div></div>
+  <div class="panel"><h3>Hosting note</h3><p class="notice">This build is hosted as a static page on GitHub Pages and is protected by a client-side passcode only. That keeps the board out of casual view, but it is not real access control — do not treat the URL as confidential. Shared data is stored in your Google Sheet via the Apps Script web app configured above.</p></div>
+</section>
+</div>
+<footer class="footer"><span>Building People. Building Possibilities.</span><div class="footer-brand">KIRPA PROPERTIES</div></footer>
+</main>
+</div>
+
+<div class="modal-backdrop" id="agentModal"><div class="modal"><div class="modal-head"><div><div style="color:var(--orange);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase">Agent Profile</div><h3 id="modalAgentName">Agent</h3><div id="modalTeam" style="font-size:12px;color:#7c8797;margin-top:5px"></div></div><button class="close" id="modalClose">×</button></div><div class="modal-body"><div class="modal-grid" id="modalKpis"></div><div class="history-list"><h3 style="margin:18px 0 4px">Weekly History</h3><div id="modalHistory"></div></div></div></div></div>
+<div class="modal-backdrop" id="logoutModal"><div class="modal" style="width:min(500px,100%)"><div class="modal-head"><h3>Standalone HTML</h3><button class="close" id="logoutClose">×</button></div><div class="modal-body"><p>This file does not contain secure authentication because credentials inside a static HTML file can be read from the source.</p><p class="notice">If this will be public at <b>knowledge.kirpaproperties.net</b>, use the server-backed version for real password security.</p><button class="btn btn-primary" id="logoutOkay">Okay</button></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LEVELS={1:'Poor',2:'Weak',3:'Good',4:'Very Good'};
+const SCORES={1:25,2:50,3:75,4:100};
+const AREAS=[
+  'Objection Handling',
+  'Investment / ROI Knowledge',
+  'Dubai Area & Market Knowledge',
+  'Project / Product Knowledge',
+  'Sales Presentation / Pitch'
+];
+const LEGACY_AREA='Overall / General Knowledge (Imported Paper)';
+const DEFAULT_TEAMS=[
+{name:'Team Lipika',leader:'Lipika',members:['Lipika','Priyanka Sunil','Kirti','Sadaf','Sukhpreet']},
+{name:'Team Saloni',leader:'Saloni',members:['Saloni','Ritika','Sahil Bedi','Samaksh','Aasfa','Riya']},
+{name:'Team Mubeen',leader:'Mubeen',members:['Mubeen','Faiyaz','Sahil Mendiratta','Nikita','Aanchal']},
+{name:"Team Manpreet Ma'am",leader:"Manpreet Ma'am",members:['Vaishali','Arbaz','Jagraaj','Sara','Barkha','Kirat','Navneet','Manmeet','Lovepreet','Puja','Preeti','Jeet','Kavita']},
+{name:'Team Priyanka',leader:'Priyanka',members:['Priyanka','Ameer','Akshay','Spoorthi','Geetika']},
+{name:'Team Kamal',leader:'Kamal',members:['Kamal','Sarv','Prachi','Mona','Christine','Karan']}
+];
+const PAPER_WEEK='2026-09-11';
+const DEFAULT_RECORDS=[
+{week:PAPER_WEEK,team:'Team Kamal',agent:'Karan',area:LEGACY_AREA,level:3,comment:'Good, but not confident.'},{week:PAPER_WEEK,team:'Team Kamal',agent:'Sarv',area:LEGACY_AREA,level:3,comment:'Good, but needs work.'},{week:PAPER_WEEK,team:'Team Kamal',agent:'Mona',area:LEGACY_AREA,level:1,comment:'Poor.'},{week:PAPER_WEEK,team:'Team Kamal',agent:'Prachi',area:LEGACY_AREA,level:3,comment:'Good, but needs improvement.'},
+{week:PAPER_WEEK,team:'Team Priyanka',agent:'Spoorthi',area:LEGACY_AREA,level:3,comment:'Good, but can become better.'},{week:PAPER_WEEK,team:'Team Priyanka',agent:'Geetika',area:LEGACY_AREA,level:2,comment:'Weak, but better.'},{week:PAPER_WEEK,team:'Team Priyanka',agent:'Akshay',area:LEGACY_AREA,level:2,comment:'Weak.'},
+{week:PAPER_WEEK,team:'Team Saloni',agent:'Riya',area:LEGACY_AREA,level:1,comment:'Poor.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Samaksh',area:LEGACY_AREA,level:2,comment:'Weak, but better.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Ritika',area:LEGACY_AREA,level:2,comment:'Weak, but better; lacks confidence.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Sahil Bedi',area:LEGACY_AREA,level:1,comment:'Poor.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Aasfa',area:LEGACY_AREA,level:1,comment:'Very poor; no confidence.'},
+{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Arbaz',area:LEGACY_AREA,level:3,comment:'Good.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Sara',area:LEGACY_AREA,level:2,comment:'Weak.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Kavita',area:LEGACY_AREA,level:2,comment:'Weak; no confidence.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Barkha',area:LEGACY_AREA,level:2,comment:'Weak.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Kirat',area:LEGACY_AREA,level:2,comment:'Weak.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Preeti',area:LEGACY_AREA,level:3,comment:'Good.'}
+];
+const LEGACY=[{week:PAPER_WEEK,team:'Team Kamal',agent:'Chaitanya',area:LEGACY_AREA,level:1,comment:'Very poor.',notes:'Historical paper-only name; not mapped to Christine.'}];
+const STORE='kirpaKnowledgeWeeklyBoard_v3';
+function deepClone(v){return JSON.parse(JSON.stringify(v))}
+function initialState(){return{teams:deepClone(DEFAULT_TEAMS),records:deepClone(DEFAULT_RECORDS),legacy:deepClone(LEGACY),inactive:[],version:3}}
+let state=loadState();
+function normalizeState(v){
+  if(!v||!Array.isArray(v.teams)||!Array.isArray(v.records))return initialState();
+  v.records=v.records.map(r=>({...r,area:r.area||LEGACY_AREA}));
+  v.legacy=(v.legacy||[]).map(r=>({...r,area:r.area||LEGACY_AREA}));
+  v.inactive=v.inactive||[]; v.version=3;
+  return v;
+}
+function loadState(){try{const v=JSON.parse(localStorage.getItem(STORE)||'null');return normalizeState(v)}catch(e){return initialState()}}
+function saveState(){localStorage.setItem(STORE,JSON.stringify(state))}
+function activeMembers(teamName='ALL'){const arr=[];state.teams.forEach(t=>{if(teamName!=='ALL'&&t.name!==teamName)return;t.members.forEach(m=>{if(!state.inactive.includes(t.name+'|'+m))arr.push({team:t.name,agent:m,leader:t.leader})})});return arr}
+function allWeeks(){const w=[...new Set(state.records.map(r=>r.week))].sort().reverse();return w.length?w:[PAPER_WEEK]}
+function fmtWeek(w){const d=new Date(w+'T12:00:00');return 'Week ending: '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+function selectedWeek(){return document.getElementById('weekFilter').value||allWeeks()[0]}
+function selectedTeam(){return document.getElementById('teamFilter').value||'ALL'}
+function pct(n,d){return d?Math.round(n/d*100):0}
+function avgNum(nums){return nums.length?Math.round(nums.reduce((a,b)=>a+b,0)/nums.length):0}
+function levelFromScore(score){if(score<38)return 1;if(score<63)return 2;if(score<88)return 3;return 4}
+function prevWeek(week){const ws=allWeeks().slice().sort();const i=ws.indexOf(week);return i>0?ws[i-1]:null}
+function initials(name){return name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()}
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2200)}
+function recordsFor(week,team='ALL'){return state.records.filter(r=>r.week===week&&(team==='ALL'||r.team===team)&&r.level)}
+function agentSummaries(week,team='ALL'){
+  const members=activeMembers(team), recs=recordsFor(week,team), grouped=new Map();
+  recs.forEach(r=>{const k=r.team+'|'+r.agent;if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(r)});
+  return members.map(m=>{const rs=grouped.get(m.team+'|'+m.agent)||[];if(!rs.length)return{...m,assessed:false,records:[]};const score=avgNum(rs.map(r=>SCORES[r.level]));return{...m,assessed:true,records:rs,score,level:levelFromScore(score)}});
+}
+function companyScore(week,team='ALL'){const s=agentSummaries(week,team).filter(x=>x.assessed);return avgNum(s.map(x=>x.score))}
+function exactRecord(week,team,agent,area){return state.records.find(r=>r.week===week&&r.team===team&&r.agent===agent&&r.area===area)||null}
+function setView(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+id));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===id));window.scrollTo({top:0,behavior:'smooth'});if(id==='agents')renderAgents();if(id==='teams')renderTeams();if(id==='reports')renderReports();if(id==='admin')renderAdmin();if(id==='assess')prepareAssessment()}
+function setupSelectors(){
+  const ws=allWeeks(),wf=document.getElementById('weekFilter'),keep=wf.value;wf.innerHTML=ws.map(w=>`<option value="${w}">${fmtWeek(w)}</option>`).join('');wf.value=ws.includes(keep)?keep:ws[0];
+  const teams=['ALL',...state.teams.map(t=>t.name)];
+  document.getElementById('teamFilter').innerHTML=teams.map(t=>`<option value="${esc(t)}">${t==='ALL'?'All Teams':esc(t)}</option>`).join('');
+  document.getElementById('agentTeamFilter').innerHTML=teams.map(t=>`<option value="${esc(t)}">${t==='ALL'?'All Teams':esc(t)}</option>`).join('');
+  document.getElementById('assessTeam').innerHTML=state.teams.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+  document.getElementById('assessArea').innerHTML=[...AREAS,LEGACY_AREA].map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  document.getElementById('newAgentTeam').innerHTML=state.teams.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+}
+function renderDashboard(){
+  const week=selectedWeek(),team=selectedTeam(),members=activeMembers(team),summ=agentSummaries(week,team),assessed=summ.filter(x=>x.assessed),count={1:0,2:0,3:0,4:0};assessed.forEach(x=>count[x.level]++);
+  const total=assessed.length,score=avgNum(assessed.map(x=>x.score)),coverage=pct(total,members.length);
+  document.getElementById('companyScore').textContent=score+'%';document.getElementById('scoreRing').style.background=`conic-gradient(var(--orange) 0deg ${score*3.6}deg,#e9eaec ${score*3.6}deg 360deg)`;
+  document.getElementById('coverageText').textContent=`${coverage}% assessment coverage`;document.getElementById('scoreBase').innerHTML=`Based on ${total} assessed / ${members.length} active agents<br>${fmtWeek(week)}`;
+  const pw=prevWeek(week),movement=document.getElementById('movementText');if(pw){const prev=companyScore(pw,team),diff=score-prev;movement.classList.toggle('neutral',diff===0);movement.textContent=`${diff>0?'↑ ':diff<0?'↓ ':''}${diff>0?'+':''}${diff} pts vs previous week`}else{movement.classList.add('neutral');movement.textContent='Baseline week'};
+  [['poor',1],['weak',2],['good',3],['very',4]].forEach(([k,l])=>{document.getElementById(k+'Count').textContent=count[l];document.getElementById(k+'Pct').textContent=pct(count[l],total)+'%'});
+  document.getElementById('reviewStrip').classList.add('hidden');
+  renderDistribution(count);renderAreaScores(week,team);renderGaps(week,team);renderLevels(summ);renderInsights(week,team,summ);
+}
+function renderDistribution(count){const mx=Math.max(5,...Object.values(count));document.getElementById('yMax').textContent=mx;const spec=[[1,'Poor','red'],[2,'Weak','orange'],[3,'Good','yellow'],[4,'Very Good','green']];document.getElementById('distributionBars').innerHTML=spec.map(([l,n,c])=>`<div class="barwrap"><div class="barvalue">${count[l]}</div><div class="bar ${c}" style="height:${Math.max(2,Math.round(count[l]/mx*110))}px"></div><span class="xlabel">${n}</span></div>`).join('')}
+function areaStats(week,team='ALL'){return AREAS.map(area=>{const rs=state.records.filter(r=>r.week===week&&(team==='ALL'||r.team===team)&&r.area===area&&r.level);return{area,score:rs.length?avgNum(rs.map(r=>SCORES[r.level])):null,count:rs.length}})}
+function renderAreaScores(week,team){document.getElementById('teamScores').innerHTML=areaStats(week,team).map(x=>`<div class="area-row"><span>${esc(x.area)}</span><div class="progress"><i style="width:${x.score||0}%"></i></div><b>${x.score===null?'—':x.score+'%'}</b></div>`).join('')}
+function renderGaps(week,team){const stats=areaStats(week,team).slice().sort((a,b)=>(a.score??101)-(b.score??101));document.getElementById('trainingGaps').innerHTML=stats.map((x,i)=>`<div class="gap-row"><span class="rank r${i+1}">${i+1}</span><span>${esc(x.area)}</span><b class="${i===0?'c-red':i===1?'c-orange':i===2?'c-olive':'c-green'}">${x.score===null?'—':x.score+'%'}</b></div>`).join('')}
+function levelCard(level,title,cls,items){return`<div class="level-card"><div class="level-head ${cls}"><span class="level-icon">♟</span>${title} (${items.length})</div>${items.slice(0,6).map(x=>`<div class="agent-row" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}"><span class="initial ${level>=3?'outline':''}">${initials(x.agent)}</span><span class="name">${esc(x.agent)}</span><span class="team">${esc(x.team)}</span></div>`).join('')}${items.length>6?`<div class="more" data-filter-level="${level}">+ ${items.length-6} more agents</div>`:''}${!items.length?'<div class="empty-line">No agents</div>':''}</div>`}
+function renderLevels(summ){const a=summ.filter(x=>x.assessed);document.getElementById('levelGrid').innerHTML=levelCard(1,'Poor','poor',a.filter(x=>x.level===1))+levelCard(2,'Weak','weak',a.filter(x=>x.level===2))+levelCard(3,'Good','good',a.filter(x=>x.level===3))+levelCard(4,'Very Good','very',a.filter(x=>x.level===4))}
+function renderInsights(week,team,summ){
+  const assessed=summ.filter(x=>x.assessed),needs=assessed.filter(x=>x.level<=2).sort((a,b)=>a.score-b.score).slice(0,5),pw=prevWeek(week),prevMap=new Map((pw?agentSummaries(pw,team):[]).filter(x=>x.assessed).map(x=>[x.team+'|'+x.agent,x]));
+  const moves=assessed.map(x=>{const p=prevMap.get(x.team+'|'+x.agent);return p?{...x,diff:x.score-p.score}:null}).filter(Boolean);const improved=moves.filter(x=>x.diff>0).sort((a,b)=>b.diff-a.diff).slice(0,5),declining=moves.filter(x=>x.diff<0).sort((a,b)=>a.diff-b.diff).slice(0,5),missing=summ.filter(x=>!x.assessed).slice(0,5);
+  const rows=(items,type)=>items.length?items.map(x=>`<div class="insight-row" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}"><span>${esc(x.agent)}</span><b>${type==='miss'?'Not assessed':type==='move'?(x.diff>0?'+':'')+x.diff+' pts':x.score+'%'}</b></div>`).join(''):'<div class="empty-line">None</div>';
+  document.getElementById('insightGrid').innerHTML=`<div class="insight-card"><div class="insight-head att"><span class="ih-icon">⚠</span>Needs Attention<span class="view" data-insight="att">View All →</span></div>${rows(needs,'score')}</div><div class="insight-card"><div class="insight-head imp"><span class="ih-icon">↑</span>Most Improved<span class="view">View All →</span></div>${rows(improved,'move')}</div><div class="insight-card"><div class="insight-head dec"><span class="ih-icon">↓</span>Declining<span class="view">View All →</span></div>${rows(declining,'move')}</div><div class="insight-card"><div class="insight-head recent"><span class="ih-icon">◷</span>No Recent Assessment<span class="view">View All →</span></div>${rows(missing,'miss')}</div>`;
+}
+function prepareAssessment(){const week=selectedWeek(),team=selectedTeam()==='ALL'?state.teams[0].name:selectedTeam();document.getElementById('assessWeek').value=week;document.getElementById('assessTeam').value=team;const areaSel=document.getElementById('assessArea');areaSel.value=week===PAPER_WEEK?LEGACY_AREA:AREAS[0];renderAssessmentGrid()}
+function renderAssessmentGrid(){const week=document.getElementById('assessWeek').value||selectedWeek(),team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value,t=state.teams.find(x=>x.name===team);if(!t)return;document.getElementById('weeklyGrid').innerHTML=t.members.filter(m=>!state.inactive.includes(team+'|'+m)).map(agent=>{const r=exactRecord(week,team,agent,area);return`<div class="assessment-person" data-agent="${esc(agent)}"><div class="person-name"><strong>${esc(agent)}</strong><span>${agent===t.leader?'Team leader · ':''}${esc(team)}</span></div><div class="level-buttons">${[1,2,3,4].map(l=>`<button type="button" class="level-btn ${r&&r.level===l?'selected':''}" data-level="${l}">${LEVELS[l]}</button>`).join('')}</div><input class="field comment-input" placeholder="Coaching comment (optional)" value="${esc(r?.comment||'')}"></div>`}).join('')}
+function saveWeeklyAssessment(){const week=document.getElementById('assessWeek').value,team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value;if(!week)return alert('Select a week ending date.');if(!area)return alert('Select a knowledge area.');const rows=[...document.querySelectorAll('#weeklyGrid .assessment-person')];let saved=0;rows.forEach(row=>{const agent=row.dataset.agent,sel=row.querySelector('.level-btn.selected'),comment=row.querySelector('.comment-input').value.trim(),existing=exactRecord(week,team,agent,area);if(sel){const level=Number(sel.dataset.level);if(existing){existing.level=level;existing.comment=comment}else state.records.push({week,team,agent,area,level,comment});saved++}else if(existing){state.records=state.records.filter(r=>r!==existing)}});saveState();setupSelectors();document.getElementById('weekFilter').value=week;document.getElementById('teamFilter').value=team;renderAll();toast(`${saved} ${area} assessment${saved===1?'':'s'} saved for ${team}`);setView('dashboard')}
+function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?`${r.area}: ${r.comment}`:'—'}
+function renderAgents(){const week=selectedWeek(),team=document.getElementById('agentTeamFilter').value||'ALL',lvl=document.getElementById('agentLevelFilter').value,q=(document.getElementById('agentSearch').value||'').trim().toLowerCase();let rows=agentSummaries(week,team).filter(x=>!q||x.agent.toLowerCase().includes(q));if(lvl==='NA')rows=rows.filter(x=>!x.assessed);else if(/^\d$/.test(lvl))rows=rows.filter(x=>x.assessed&&x.level===Number(lvl));else if(lvl==='REVIEW')rows=[];document.getElementById('agentsBody').innerHTML=rows.map(x=>`<tr><td><span class="agent-link" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}">${esc(x.agent)}</span></td><td>${esc(x.team)}</td><td>${x.assessed?`<span class="badge b${x.level}">${LEVELS[x.level]}</span>`:'<span class="badge b0">Not assessed</span>'}</td><td>${x.assessed?x.score+'%':'—'}</td><td>${esc(latestComment(x))}</td><td>${fmtWeek(week).replace('Week ending: ','')}</td></tr>`).join('')}
+function renderTeams(){const week=selectedWeek();document.getElementById('teamGrid').innerHTML=state.teams.map(t=>{const members=activeMembers(t.name),summ=agentSummaries(week,t.name),ass=summ.filter(x=>x.assessed),score=avgNum(ass.map(x=>x.score));return`<div class="panel team-card" data-team-card="${esc(t.name)}"><div style="font-size:10px;letter-spacing:.1em;color:#9a7862;text-transform:uppercase">${members.length} members</div><h3>${esc(t.name)}</h3><div class="tl">TL · ${esc(t.leader)}</div><div style="margin-top:14px"><span class="score-big">${ass.length?score+'%':'—'}</span><div style="font-size:11px;color:#8590a0">${ass.length} of ${members.length} assessed · ${fmtWeek(week)}</div></div><div class="team-members">${summ.map(m=>`<div class="team-person"><span>${esc(m.agent)}${m.agent===t.leader?' <small style="color:#9a7862">(TL)</small>':''}</span><span>${m.assessed?LEVELS[m.level]:'—'}</span></div>`).join('')}</div></div>`}).join('')}
+function renderReports(){const weeks=allWeeks().slice().sort().reverse();document.getElementById('weeklyReportBody').innerHTML=weeks.map(w=>{const members=activeMembers('ALL'),s=agentSummaries(w,'ALL'),a=s.filter(x=>x.assessed),c={1:0,2:0,3:0,4:0};a.forEach(x=>c[x.level]++);return`<tr><td>${fmtWeek(w).replace('Week ending: ','')}</td><td>${a.length}</td><td>${pct(a.length,members.length)}%</td><td>${avgNum(a.map(x=>x.score))}%</td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td>${c[4]}</td></tr>`}).join('');const w=selectedWeek();document.getElementById('teamReportBody').innerHTML=state.teams.map(t=>{const m=activeMembers(t.name),a=agentSummaries(w,t.name).filter(x=>x.assessed);return`<tr><td>${esc(t.name)}</td><td>${m.length}</td><td>${a.length}</td><td>${pct(a.length,m.length)}%</td><td>${a.length?avgNum(a.map(x=>x.score))+'%':'—'}</td></tr>`}).join('');const a=agentSummaries(w,'ALL').filter(x=>x.assessed),members=activeMembers('ALL');document.getElementById('reportKpis').innerHTML=`<div class="kpi"><span>Active Agents</span><strong>${members.length}</strong></div><div class="kpi"><span>Assessed</span><strong>${a.length}</strong></div><div class="kpi"><span>Coverage</span><strong>${pct(a.length,members.length)}%</strong></div><div class="kpi"><span>Knowledge Score</span><strong>${avgNum(a.map(x=>x.score))}%</strong></div>`}
+function renderAdmin(){document.getElementById('adminBody').innerHTML=state.teams.flatMap(t=>t.members.map(agent=>{const key=t.name+'|'+agent,inactive=state.inactive.includes(key);return`<tr><td>${esc(agent)}</td><td>${esc(t.name)}</td><td>${agent===t.leader?'Yes':'No'}</td><td>${inactive?'<span class="badge b0">Inactive</span>':'<span class="badge b4">Active</span>'}</td><td><button class="btn btn-outline admin-toggle" data-key="${esc(key)}">${inactive?'Reactivate':'Deactivate'}</button></td></tr>`})).join('')}
+function openAgent(agent,team){const all=state.records.filter(r=>r.agent===agent&&r.team===team&&r.level).sort((a,b)=>b.week.localeCompare(a.week)||a.area.localeCompare(b.area));const weeks=[...new Set(all.map(r=>r.week))].sort().reverse(),currWeek=weeks[0],currSummary=currWeek?agentSummaries(currWeek,team).find(x=>x.agent===agent):null;document.getElementById('modalAgentName').textContent=agent;document.getElementById('modalTeam').textContent=team;document.getElementById('modalKpis').innerHTML=`<div class="mini-kpi"><span>Current Level</span><strong>${currSummary?.assessed?LEVELS[currSummary.level]:'Not assessed'}</strong></div><div class="mini-kpi"><span>Current Score</span><strong>${currSummary?.assessed?currSummary.score+'%':'—'}</strong></div><div class="mini-kpi"><span>Area Assessments</span><strong>${all.length}</strong></div>`;document.getElementById('modalHistory').innerHTML=all.length?all.map(r=>`<div class="history-entry"><span>${fmtWeek(r.week).replace('Week ending: ','')}</span><span><span class="badge b${r.level}">${LEVELS[r.level]}</span></span><span><b>${esc(r.area)}</b>${r.comment?' · '+esc(r.comment):''}</span></div>`).join(''):'<div class="empty-line">No assessments yet.</div>';document.getElementById('agentModal').classList.add('open')}
+function download(filename,text,type='text/plain'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},300)}
+function exportCsv(){const rows=[['Week','Team','Agent','Knowledge Area','Level','Score','Comment']];state.records.slice().sort((a,b)=>b.week.localeCompare(a.week)||a.team.localeCompare(b.team)||a.agent.localeCompare(b.agent)||a.area.localeCompare(b.area)).forEach(r=>rows.push([r.week,r.team,r.agent,r.area||LEGACY_AREA,r.level?LEVELS[r.level]:'',r.level?SCORES[r.level]:'',r.comment||'']));const csv=rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');download('kirpa-knowledge-assessments.csv',csv,'text/csv')}
+function renderAll(){renderDashboard();renderAgents();renderTeams();renderReports();renderAdmin()}
+setupSelectors();document.getElementById('weekFilter').value=allWeeks()[0];document.getElementById('teamFilter').value='ALL';document.getElementById('agentTeamFilter').value='ALL';renderAll();
+document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)setView(b.dataset.view)});document.querySelector('[data-view="settings"]').addEventListener('click',()=>setView('settings'));
+document.getElementById('weekFilter').addEventListener('change',()=>{renderAll();if(document.getElementById('view-assess').classList.contains('active'))prepareAssessment()});document.getElementById('teamFilter').addEventListener('change',renderAll);document.getElementById('addAssessmentBtn').addEventListener('click',()=>setView('assess'));document.getElementById('assessBack').addEventListener('click',()=>setView('dashboard'));document.getElementById('assessTeam').addEventListener('change',renderAssessmentGrid);document.getElementById('assessWeek').addEventListener('change',renderAssessmentGrid);document.getElementById('assessArea').addEventListener('change',renderAssessmentGrid);
+document.getElementById('weeklyGrid').addEventListener('click',e=>{const b=e.target.closest('.level-btn');if(!b)return;const box=b.closest('.level-buttons');box.querySelectorAll('.level-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')});document.getElementById('clearTeamForm').addEventListener('click',()=>{document.querySelectorAll('#weeklyGrid .level-btn').forEach(x=>x.classList.remove('selected'));document.querySelectorAll('#weeklyGrid .comment-input').forEach(x=>x.value='')});document.getElementById('saveWeekBtn').addEventListener('click',saveWeeklyAssessment);
+document.getElementById('agentSearch').addEventListener('input',renderAgents);document.getElementById('agentTeamFilter').addEventListener('change',renderAgents);document.getElementById('agentLevelFilter').addEventListener('change',renderAgents);document.getElementById('agentsBody').addEventListener('click',e=>{const a=e.target.closest('.agent-link');if(a)openAgent(a.dataset.agent,a.dataset.team)});document.getElementById('levelGrid').addEventListener('click',e=>{const r=e.target.closest('.agent-row');if(r){openAgent(r.dataset.agent,r.dataset.team);return}const m=e.target.closest('.more');if(m){setView('agents');document.getElementById('agentLevelFilter').value=m.dataset.filterLevel;renderAgents()}});document.getElementById('insightGrid').addEventListener('click',e=>{const r=e.target.closest('.insight-row');if(r&&r.dataset.agent)openAgent(r.dataset.agent,r.dataset.team);const v=e.target.closest('.view');if(v){setView('agents');renderAgents()}});
+document.getElementById('teamGrid').addEventListener('click',e=>{const c=e.target.closest('[data-team-card]');if(c){document.getElementById('teamFilter').value=c.dataset.teamCard;setView('dashboard');renderDashboard()}});document.getElementById('exportCsvBtn').addEventListener('click',exportCsv);document.getElementById('printBtn').addEventListener('click',()=>window.print());
+document.getElementById('addAgentBtn').addEventListener('click',()=>{const name=document.getElementById('newAgentName').value.trim(),team=document.getElementById('newAgentTeam').value;if(!name)return alert('Enter the agent name.');const t=state.teams.find(x=>x.name===team);if(t.members.some(x=>x.toLowerCase()===name.toLowerCase()))return alert('That agent already exists in this team.');t.members.push(name);document.getElementById('newAgentName').value='';saveState();setupSelectors();renderAll();toast(name+' added to '+team)});document.getElementById('adminBody').addEventListener('click',e=>{const b=e.target.closest('.admin-toggle');if(!b)return;const key=b.dataset.key,idx=state.inactive.indexOf(key);if(idx>=0)state.inactive.splice(idx,1);else state.inactive.push(key);saveState();renderAll();toast(idx>=0?'Agent reactivated':'Agent deactivated')});
+document.getElementById('exportJsonBtn').addEventListener('click',()=>download('kirpa-knowledge-backup.json',JSON.stringify(state,null,2),'application/json'));document.getElementById('importJsonInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const x=normalizeState(JSON.parse(rd.result));state=x;saveState();setupSelectors();renderAll();toast('Backup imported')}catch(err){alert('Could not import this backup: '+err.message)}};rd.readAsText(f)});document.getElementById('resetDataBtn').addEventListener('click',()=>{if(confirm('Reset the standalone app to the original roster and handwritten paper data?')){state=initialState();saveState();setupSelectors();document.getElementById('weekFilter').value=allWeeks()[0];document.getElementById('teamFilter').value='ALL';renderAll();toast('Original data restored')}});
+document.getElementById('agentModal').addEventListener('click',e=>{if(e.target.id==='agentModal'||e.target.id==='modalClose')document.getElementById('agentModal').classList.remove('open')});document.getElementById('logoutBtn').addEventListener('click',()=>document.getElementById('logoutModal').classList.add('open'));document.getElementById('logoutClose').addEventListener('click',()=>document.getElementById('logoutModal').classList.remove('open'));document.getElementById('logoutOkay').addEventListener('click',()=>document.getElementById('logoutModal').classList.remove('open'));
+</script>
+<script>
+/* =====================================================================
+   Kirpa Knowledge — passcode gate + Google Sheet cloud sync
+   Added for the GitHub Pages pilot deployment.
+   ===================================================================== */
+(function(){
+'use strict';
+
+/* ---------- build-time defaults (edit these two lines to reconfigure) ---------- */
+var PASSCODE_SHA256 = 'd707acfa5bf8da8bce25cd98e000ddbae63213bd51a5c27c976f847d3d7b5e36';
+var DEFAULT_API_URL = '';                                   // Apps Script /exec URL
+var DEFAULT_TOKEN   = 'kirpa_aa7abca846471b077fa6671cbf6943f4';
+/* ------------------------------------------------------------------------------ */
+
+var CFG_KEY  = 'kirpaSyncCfg_v1';
+var GATE_KEY = 'kirpaGate_v1';
+var GATE_DAYS = 7;
+var POLL_MS  = 20000;
+
+/* ===================== passcode gate ===================== */
+var gate      = document.getElementById('gate');
+var gateInput = document.getElementById('gateInput');
+var gateBtn   = document.getElementById('gateBtn');
+var gateErr   = document.getElementById('gateErr');
+var gateRem   = document.getElementById('gateRemember');
+
+function sha256(str){
+  if(!(window.crypto && window.crypto.subtle)) return Promise.resolve(null);
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+    .then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){
+        return ('00'+b.toString(16)).slice(-2);
+      }).join('');
+    });
+}
+
+function unlock(){
+  gate.classList.add('done');
+  try{ document.body.style.overflow=''; }catch(e){}
+  startSync();
+}
+
+function gateRemembered(){
+  try{
+    var v = JSON.parse(localStorage.getItem(GATE_KEY)||'null');
+    return !!(v && v.h === PASSCODE_SHA256 && v.exp > Date.now());
+  }catch(e){ return false; }
+}
+
+function tryPasscode(){
+  var val = gateInput.value || '';
+  if(!val){ gateErr.textContent = 'Enter the passcode.'; return; }
+  sha256(val).then(function(h){
+    if(h === null){ gateErr.textContent = 'This browser blocks the passcode check. Open the page over https.'; return; }
+    if(h !== PASSCODE_SHA256){ gateErr.textContent = 'Incorrect passcode.'; gateInput.value=''; gateInput.focus(); return; }
+    if(gateRem && gateRem.checked){
+      try{ localStorage.setItem(GATE_KEY, JSON.stringify({h:h, exp: Date.now()+GATE_DAYS*864e5})); }catch(e){}
+    }
+    unlock();
+  });
+}
+
+function initGate(){
+  if(!gate) return;
+  if(gateRemembered()){ unlock(); return; }
+  document.body.style.overflow='hidden';
+  gateBtn.addEventListener('click', tryPasscode);
+  gateInput.addEventListener('keydown', function(e){ if(e.key==='Enter') tryPasscode(); });
+  setTimeout(function(){ gateInput.focus(); }, 60);
+}
+
+/* ===================== cloud sync ===================== */
+var pill     = document.getElementById('syncPill');
+var pillText = document.getElementById('syncPillText');
+var statusLn = document.getElementById('syncStatusLine');
+var elUrl    = document.getElementById('syncUrl');
+var elTok    = document.getElementById('syncToken');
+
+var cfg      = loadCfg();
+var localRev = 0;
+var pushTimer = null, pollTimer = null, started = false, pushing = false;
+
+function loadCfg(){
+  var c = {url:DEFAULT_API_URL, token:DEFAULT_TOKEN};
+  try{
+    var v = JSON.parse(localStorage.getItem(CFG_KEY)||'null');
+    if(v && typeof v.url === 'string') c = {url:v.url, token: v.token || DEFAULT_TOKEN};
+  }catch(e){}
+  return c;
+}
+function saveCfg(){ try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }catch(e){} }
+function connected(){ return !!(cfg.url && /^https:\/\/script\.google\.com\//.test(cfg.url)); }
+
+function setPill(cls, text){
+  if(!pill) return;
+  pill.className = 'sync-pill ' + cls;
+  pillText.textContent = text;
+}
+function setStatus(msg){ if(statusLn) statusLn.textContent = msg; }
+
+function api(payload){
+  return fetch(cfg.url, {
+    method: 'POST',
+    // text/plain keeps this a CORS "simple request" — Apps Script cannot answer preflight
+    headers: {'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(Object.assign({token: cfg.token}, payload)),
+    redirect: 'follow'
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(function(t){
+    var j;
+    try{ j = JSON.parse(t); }
+    catch(e){ throw new Error('Unexpected reply from the web app. Re-deploy it with access set to "Anyone".'); }
+    if(j.ok === false) throw new Error(j.error || 'Request rejected');
+    return j;
+  });
+}
+
+function currentFilters(){
+  return {
+    week: (document.getElementById('weekFilter')||{}).value,
+    team: (document.getElementById('teamFilter')||{}).value,
+    agentTeam: (document.getElementById('agentTeamFilter')||{}).value
+  };
+}
+function restoreFilters(f){
+  var w = document.getElementById('weekFilter'),
+      t = document.getElementById('teamFilter'),
+      a = document.getElementById('agentTeamFilter');
+  if(w){ w.value = f.week && [].some.call(w.options,function(o){return o.value===f.week;}) ? f.week : allWeeks()[0]; }
+  if(t){ t.value = f.team || 'ALL'; }
+  if(a){ a.value = f.agentTeam || 'ALL'; }
+}
+
+function applyRemote(remote, rev){
+  var f = currentFilters();
+  state = normalizeState(remote);
+  localStorage.setItem(STORE, JSON.stringify(state));
+  localRev = rev;
+  setupSelectors();
+  restoreFilters(f);
+  renderAll();
+}
+
+function pull(quiet){
+  if(!connected()) return Promise.resolve();
+  if(!quiet) setPill('busy','Syncing…');
+  return api({action:'get'}).then(function(j){
+    if(j.rev && j.rev !== localRev && j.state){
+      applyRemote(j.state, j.rev);
+      if(!quiet) toast('Pulled latest data from the Google Sheet');
+      else toast('Updated with changes from another device');
+    }else if(j.rev){
+      localRev = j.rev;
+    }
+    setPill('ok','Synced');
+    setStatus('Connected. Revision '+(j.rev||0)+', last change '+(j.updatedAt ? new Date(j.updatedAt).toLocaleString('en-GB') : 'n/a')+'.');
+  }).catch(function(e){
+    setPill('err','Sync error');
+    setStatus('Could not reach the Google Sheet: '+e.message);
+  });
+}
+
+function push(quiet){
+  if(!connected()) return Promise.resolve();
+  if(pushing) return Promise.resolve();
+  pushing = true;
+  setPill('busy','Saving…');
+  return api({action:'put', state: state, rev: localRev}).then(function(j){
+    localRev = j.rev;
+    setPill('ok','Synced');
+    setStatus('Connected. Revision '+j.rev+', last change '+new Date(j.updatedAt).toLocaleString('en-GB')+'.');
+    if(!quiet) toast('Saved to the Google Sheet');
+  }).catch(function(e){
+    setPill('err','Not saved');
+    setStatus('Saved in this browser, but the Google Sheet write failed: '+e.message);
+  }).then(function(){ pushing = false; });
+}
+
+function schedulePush(){
+  if(!connected()) return;
+  setPill('busy','Saving…');
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(function(){ push(true); }, 900);
+}
+
+/* wrap the app's saveState so every change reaches the sheet */
+var _saveState = saveState;
+saveState = function(){ _saveState(); schedulePush(); };
+window.saveState = saveState;
+
+function startSync(){
+  if(started) return;
+  started = true;
+  if(elUrl) elUrl.value = cfg.url || '';
+  if(elTok) elTok.value = cfg.token || '';
+  if(!connected()){
+    setPill('off','Local only');
+    setStatus('Not connected. Paste the Apps Script web app URL above to share data across devices.');
+    return;
+  }
+  pull(false);
+  clearInterval(pollTimer);
+  pollTimer = setInterval(function(){ if(!document.hidden) pull(true); }, POLL_MS);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) pull(true); });
+}
+
+/* settings buttons */
+function bind(id, fn){ var el = document.getElementById(id); if(el) el.addEventListener('click', fn); }
+bind('syncSaveBtn', function(){
+  cfg.url = (elUrl.value||'').trim();
+  cfg.token = (elTok.value||'').trim() || DEFAULT_TOKEN;
+  saveCfg();
+  if(!connected()){
+    setPill('off','Local only');
+    setStatus('That does not look like an Apps Script /exec URL. It should start with https://script.google.com/macros/s/ and end with /exec');
+    return;
+  }
+  started = false;
+  startSync();
+});
+bind('syncPullBtn', function(){ pull(false); });
+bind('syncPushBtn', function(){ push(false); });
+bind('syncClearBtn', function(){
+  cfg = {url:'', token:DEFAULT_TOKEN};
+  saveCfg();
+  clearInterval(pollTimer);
+  if(elUrl) elUrl.value='';
+  setPill('off','Local only');
+  setStatus('Disconnected. This browser now stores data locally only.');
+});
+
+/* everything above is declared — now it is safe to open the gate */
+initGate();
+
+/* flush a pending push if the tab is closed mid-edit */
+window.addEventListener('beforeunload', function(){
+  if(connected() && pushTimer){
+    clearTimeout(pushTimer);
+    try{
+      navigator.sendBeacon(cfg.url, new Blob(
+        [JSON.stringify({token:cfg.token, action:'put', state:state, rev:localRev})],
+        {type:'text/plain;charset=utf-8'}));
+    }catch(e){}
+  }
+});
+
+})();
+
+</script>
+</body>
+</html>
