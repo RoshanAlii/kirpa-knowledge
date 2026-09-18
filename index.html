@@ -42,6 +42,71 @@
 .sync-status-line{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6;word-break:break-word}
 @media print{.gate{display:none!important}}
 
+
+/* ==== previous-level memory on the assessment grid ==== */
+.level-buttons{align-items:start}
+.level-cell{display:flex;flex-direction:column;gap:4px;min-width:0}
+.level-cell .level-btn{width:100%}
+.level-btn.prev{border-style:dashed;border-color:#b9c2cf;background:#fbfcfd}
+.level-btn.prev.selected{border-style:solid}
+.prev-tag{font-size:9px;line-height:1.35;color:#8a94a3;text-align:center;letter-spacing:.01em}
+.prev-tag b{color:#5f6d80;font-weight:600}
+.prev-none{font-size:11px;color:#a8b0bc;display:block;margin-top:2px}
+.legend-dash{display:inline-block;width:14px;height:0;border-top:1.5px dashed #b9c2cf;vertical-align:middle;margin:0 4px}
+
+
+/* ==== layout hardening: no horizontal page scroll, no text collisions ==== */
+html,body{max-width:100%;overflow-x:hidden}
+@media(min-width:761px){
+  .topbar{height:auto;min-height:82px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap;row-gap:10px}
+  .title-wrap{min-width:0;flex:1 1 300px}
+  .top-actions{flex-wrap:wrap;justify-content:flex-end;min-width:0;row-gap:10px}
+  .filter-select{min-width:0}
+  .filter-select.week{min-width:190px}
+  .profile{margin-left:12px}
+}
+/* score card: let it grow instead of clipping when the copy wraps */
+.score-card{height:auto;min-height:148px}
+.score-body{height:auto;min-height:112px;padding-bottom:10px}
+.score-copy{margin-left:26px;min-width:0}
+/* insight + gap rows: truncate the name, never the number; grow if needed */
+.insight-row{height:auto;min-height:25px;grid-template-columns:minmax(0,1fr) auto 18px;gap:8px;padding-top:4px;padding-bottom:4px}
+.insight-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.insight-row b{white-space:nowrap}
+.gap-row{height:auto;min-height:30px;padding-top:5px;padding-bottom:5px}
+.gap-row>span:nth-child(2){min-width:0}
+.area-row{grid-template-columns:minmax(120px,190px) minmax(0,1fr) 48px}
+/* assessment row: more room for the level buttons now that they carry history */
+.assessment-person{grid-template-columns:165px minmax(0,1.15fr) minmax(0,1fr)}
+/* the area select's longest option was overflowing its column and sitting on the notice */
+.form-row label{min-width:0}
+.form-row .field{width:100%;min-width:0;max-width:100%}
+.form-row .notice{min-width:0}
+
+
+/* below ~1340px the helper note gets squeezed to a sliver — give it its own row */
+@media(max-width:1340px) and (min-width:761px){
+  .form-row{grid-template-columns:175px 220px 260px 1fr;row-gap:12px}
+  #clearTeamForm{grid-row:1;grid-column:4;justify-self:start;align-self:end}
+  .form-row .notice{grid-row:2;grid-column:1/-1}
+}
+
+
+/* fixed-height cards clipped their own content once rows wrapped */
+.section-card{height:auto;min-height:200px}
+.insight-card{height:auto;min-height:165px}
+.level-card{height:auto;min-height:246px}
+.midgrid{align-items:start}
+.levelgrid,.insights{align-items:start}
+
+
+/* make the "where they stood last time" marker actually noticeable, and keep rows aligned */
+.level-cell{min-height:54px}
+.level-btn.prev{border-style:dashed;border-width:1.5px;border-color:#a7b2c2;background:#f6f8fb;color:#4a5668}
+.level-btn.prev.selected{border-style:solid;border-width:1px}
+.prev-tag{font-size:9.5px;color:#7d8798}
+.prev-tag b{color:#4a5668}
+
 </style>
 </head>
 <body>
@@ -71,7 +136,7 @@
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.2 · Area Assessments</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.3 · Area Assessments</div>
   </div>
 </aside>
 <main class="main">
@@ -107,7 +172,7 @@
 
 <section id="view-assess" class="view">
   <div class="page-head"><div><h2>Weekly Assessment</h2><p>Select the knowledge area first, then assess the whole team on that specific area.</p></div><div class="toolbar"><button class="btn btn-secondary" id="assessBack">Back to Dashboard</button><button class="btn btn-primary" id="saveWeekBtn">Save Weekly Assessment</button></div></div>
-  <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><div class="notice">Choose one level per agent for the selected knowledge area. You can switch areas and assess the same team separately for each area.</div><button class="btn btn-outline" id="clearTeamForm">Clear Form</button></div></div>
+  <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><div class="notice">Choose one level per agent for the selected knowledge area. The button with a <span class="legend-dash"></span> dashed border is where that agent stood last time — so you can see movement as you score.</div><button class="btn btn-outline" id="clearTeamForm">Clear Form</button></div></div>
   <div class="panel"><div id="weeklyGrid" class="weekly-grid"></div></div>
 </section>
 
@@ -246,7 +311,38 @@ function renderInsights(week,team,summ){
   document.getElementById('insightGrid').innerHTML=`<div class="insight-card"><div class="insight-head att"><span class="ih-icon">⚠</span>Needs Attention<span class="view" data-insight="att">View All →</span></div>${rows(needs,'score')}</div><div class="insight-card"><div class="insight-head imp"><span class="ih-icon">↑</span>Most Improved<span class="view">View All →</span></div>${rows(improved,'move')}</div><div class="insight-card"><div class="insight-head dec"><span class="ih-icon">↓</span>Declining<span class="view">View All →</span></div>${rows(declining,'move')}</div><div class="insight-card"><div class="insight-head recent"><span class="ih-icon">◷</span>No Recent Assessment<span class="view">View All →</span></div>${rows(missing,'miss')}</div>`;
 }
 function prepareAssessment(){const week=selectedWeek(),team=selectedTeam()==='ALL'?state.teams[0].name:selectedTeam();document.getElementById('assessWeek').value=week;document.getElementById('assessTeam').value=team;const areaSel=document.getElementById('assessArea');areaSel.value=week===PAPER_WEEK?LEGACY_AREA:AREAS[0];renderAssessmentGrid()}
-function renderAssessmentGrid(){const week=document.getElementById('assessWeek').value||selectedWeek(),team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value,t=state.teams.find(x=>x.name===team);if(!t)return;document.getElementById('weeklyGrid').innerHTML=t.members.filter(m=>!state.inactive.includes(team+'|'+m)).map(agent=>{const r=exactRecord(week,team,agent,area);return`<div class="assessment-person" data-agent="${esc(agent)}"><div class="person-name"><strong>${esc(agent)}</strong><span>${agent===t.leader?'Team leader · ':''}${esc(team)}</span></div><div class="level-buttons">${[1,2,3,4].map(l=>`<button type="button" class="level-btn ${r&&r.level===l?'selected':''}" data-level="${l}">${LEVELS[l]}</button>`).join('')}</div><input class="field comment-input" placeholder="Coaching comment (optional)" value="${esc(r?.comment||'')}"></div>`}).join('')}
+const AREA_SHORT={'Objection Handling':'Objection','Investment / ROI Knowledge':'ROI','Dubai Area & Market Knowledge':'Market','Project / Product Knowledge':'Product','Sales Presentation / Pitch':'Pitch'};
+function shortArea(a){return AREA_SHORT[a]||(a===LEGACY_AREA?'Paper':a)}
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function shortDate(w){const d=new Date(w+'T12:00:00');return isNaN(d)?w:d.getDate()+' '+MON[d.getMonth()]}
+function previousRecordFor(week,team,agent,area){
+  const earlier=state.records.filter(r=>r.team===team&&r.agent===agent&&r.level&&r.week<week);
+  if(!earlier.length)return null;
+  const byWeekDesc=(a,b)=>b.week.localeCompare(a.week);
+  const same=earlier.filter(r=>r.area===area).sort(byWeekDesc);
+  if(same.length)return Object.assign({},same[0],{sameArea:true});
+  const any=earlier.slice().sort(byWeekDesc);
+  return Object.assign({},any[0],{sameArea:false});
+}
+function renderAssessmentGrid(){
+  const week=document.getElementById('assessWeek').value||selectedWeek(),
+        team=document.getElementById('assessTeam').value,
+        area=document.getElementById('assessArea').value,
+        t=state.teams.find(x=>x.name===team);
+  if(!t)return;
+  document.getElementById('weeklyGrid').innerHTML=t.members.filter(m=>!state.inactive.includes(team+'|'+m)).map(agent=>{
+    const r=exactRecord(week,team,agent,area),
+          prev=previousRecordFor(week,team,agent,area);
+    const buttons=[1,2,3,4].map(l=>{
+      const isPrev=prev&&prev.level===l;
+      const tag=isPrev?`<span class="prev-tag">Last time · <b>${shortDate(prev.week)}</b>${prev.sameArea?'':'<br>('+esc(shortArea(prev.area))+')'}</span>`:'';
+      return `<div class="level-cell"><button type="button" class="level-btn${r&&r.level===l?' selected':''}${isPrev?' prev':''}" data-level="${l}">${LEVELS[l]}</button>${tag}</div>`;
+    }).join('');
+    const sub=`${agent===t.leader?'Team leader · ':''}${esc(team)}`;
+    const note=prev?'':'<span class="prev-none">No earlier record</span>';
+    return `<div class="assessment-person" data-agent="${esc(agent)}"><div class="person-name"><strong>${esc(agent)}</strong><span>${sub}</span>${note}</div><div class="level-buttons">${buttons}</div><input class="field comment-input" placeholder="Coaching comment (optional)" value="${esc(r?.comment||'')}"></div>`;
+  }).join('');
+}
 function saveWeeklyAssessment(){const week=document.getElementById('assessWeek').value,team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value;if(!week)return alert('Select a week ending date.');if(!area)return alert('Select a knowledge area.');const rows=[...document.querySelectorAll('#weeklyGrid .assessment-person')];let saved=0;rows.forEach(row=>{const agent=row.dataset.agent,sel=row.querySelector('.level-btn.selected'),comment=row.querySelector('.comment-input').value.trim(),existing=exactRecord(week,team,agent,area);if(sel){const level=Number(sel.dataset.level);if(existing){existing.level=level;existing.comment=comment}else state.records.push({week,team,agent,area,level,comment});saved++}else if(existing){state.records=state.records.filter(r=>r!==existing)}});saveState();setupSelectors();document.getElementById('weekFilter').value=week;document.getElementById('teamFilter').value=team;renderAll();toast(`${saved} ${area} assessment${saved===1?'':'s'} saved for ${team}`);setView('dashboard')}
 function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?`${r.area}: ${r.comment}`:'—'}
 function renderAgents(){const week=selectedWeek(),team=document.getElementById('agentTeamFilter').value||'ALL',lvl=document.getElementById('agentLevelFilter').value,q=(document.getElementById('agentSearch').value||'').trim().toLowerCase();let rows=agentSummaries(week,team).filter(x=>!q||x.agent.toLowerCase().includes(q));if(lvl==='NA')rows=rows.filter(x=>!x.assessed);else if(/^\d$/.test(lvl))rows=rows.filter(x=>x.assessed&&x.level===Number(lvl));else if(lvl==='REVIEW')rows=[];document.getElementById('agentsBody').innerHTML=rows.map(x=>`<tr><td><span class="agent-link" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}">${esc(x.agent)}</span></td><td>${esc(x.team)}</td><td>${x.assessed?`<span class="badge b${x.level}">${LEVELS[x.level]}</span>`:'<span class="badge b0">Not assessed</span>'}</td><td>${x.assessed?x.score+'%':'—'}</td><td>${esc(latestComment(x))}</td><td>${fmtWeek(week).replace('Week ending: ','')}</td></tr>`).join('')}

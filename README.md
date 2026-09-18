@@ -19,6 +19,11 @@ Hosted on GitHub Pages; shared data lives in a Google Sheet via a small Apps Scr
 - Five knowledge areas: Objection Handling · Investment / ROI · Dubai Area & Market ·
   Project / Product · Sales Presentation. Plus the imported handwritten paper week (11 Sep 2026).
 - Dashboard: company score, level distribution, per-area scores, ranked training gaps, insights
+- **Previous-level memory**: when you assess a week, the button showing where that agent stood last
+  time is outlined with a dashed border and captioned with the date, so movement is visible at the
+  moment of scoring. It prefers the same knowledge area; if the agent has no history in that area it
+  falls back to their most recent record in any area and names it, e.g. `Last time · 11 Sep (Paper)`.
+  Agents with no history at all read "No earlier record".
 - Agent drill-down with full assessment history and coaching comments
 - Team view, weekly + team reports, CSV export, print
 
