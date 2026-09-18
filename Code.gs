@@ -129,6 +129,13 @@ function commit(st) {
   sh.getRange('A1').setValue(JSON.stringify({ rev: rev, updatedAt: now, chunks: parts.length }));
 
   mirror(st, now);
+
+  // Force pending writes out before the lock is released. Without this, a patch
+  // that arrives immediately after another can read the previous, unflushed
+  // state and silently drop that write - which is exactly the two-leaders-
+  // within-a-second case this whole design exists to protect.
+  SpreadsheetApp.flush();
+
   return { ok: true, rev: rev, updatedAt: now };
 }
 
