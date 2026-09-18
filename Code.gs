@@ -37,6 +37,7 @@ function route(e, body) {
   try {
     if (action === 'ping') return json({ ok: true, time: new Date().toISOString() });
     if (action === 'get')  return json(readState());
+    if (action === 'head') return json(readMeta());
     if (action === 'put')   return json(writeState(body.state));
     if (action === 'patch') return json(patchState(body));
     return json({ ok: false, error: 'Unknown action: ' + action });
@@ -60,6 +61,18 @@ function tab(name) {
 }
 
 /* ------------------------------- read ------------------------------- */
+
+/**
+ * Just the revision marker - one cell, no parsing of the state blob.
+ * Polling browsers call this; a full read only happens when it says the
+ * revision moved. At six leaders polling all day that is the difference
+ * between minutes and hours of daily script runtime.
+ */
+function readMeta() {
+  var meta = {};
+  try { meta = JSON.parse(tab(STATE_TAB).getRange('A1').getValue() || '{}'); } catch (e) {}
+  return { ok: true, rev: meta.rev || 0, updatedAt: meta.updatedAt || null };
+}
 
 function readState() {
   var sh   = tab(STATE_TAB);

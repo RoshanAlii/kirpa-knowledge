@@ -9,6 +9,7 @@ const api=http.createServer((q,s)=>{let b='';q.on('data',c=>b+=c);q.on('end',()=
   if(failNext>0){failNext--;s.writeHead(404,h);return s.end('<html>404</html>');}
   let j={};try{j=JSON.parse(b||'{}')}catch(e){}
   if(j.token!=='kirpa_aa7abca846471b077fa6671cbf6943f4'){s.writeHead(200,h);return s.end(JSON.stringify({ok:false,error:'Invalid token'}))}
+  if(j.action==='head'){s.writeHead(200,h);return s.end(JSON.stringify({ok:true,rev:store.rev,updatedAt:store.updatedAt}))}
   if(j.action==='get'){s.writeHead(200,h);return s.end(JSON.stringify({ok:true,...store}))}
   if(j.action==='put'){store={rev:store.rev+1,state:j.state,updatedAt:new Date().toISOString()};s.writeHead(200,h);return s.end(JSON.stringify({ok:true,rev:store.rev,updatedAt:store.updatedAt}))}
   if(j.action==='patch'){
@@ -234,10 +235,10 @@ G('6. Teams / Reports / CSV');
   check('weekly summary has a row per week', (await p.$$('#weeklyReportBody tr')).length===1);
   check('team summary has a row per team', (await p.$$('#teamReportBody tr')).length===6);
   const kpis=await p.$$eval('#reportKpis .kpi strong',e=>e.map(x=>x.textContent));
-  check('report KPIs agree with the dashboard', kpis[0]==='40'&&kpis[1]==='18'&&kpis[2]==='45%'&&kpis[3]==='53%', JSON.stringify(kpis));
+  check('report KPIs agree with the dashboard', kpis[0]==='40'&&kpis[1]==='19'&&kpis[2]==='48%'&&kpis[3]==='51%', JSON.stringify(kpis));
   const csv=await p.evaluate(()=>{const rows=[['Week','Team','Agent','Knowledge Area','Level','Score','Comment']];
     state.records.slice().forEach(r=>rows.push([r.week,r.team,r.agent,r.area,r.level?LEVELS[r.level]:'',r.level?SCORES[r.level]:'',r.comment||'']));return rows.length});
-  check('CSV export covers every record', csv===19, 'rows='+csv);
+  check('CSV export covers every record', csv===20, 'rows='+csv);   // 19 records + header
   const esc=await p.evaluate(()=>{const v='He said "hi", ok';return '"'+String(v).replace(/"/g,'""')+'"'});
   check('CSV quoting doubles embedded quotes', esc==='"He said ""hi"", ok"');
   await ctx.close();
@@ -284,14 +285,14 @@ G('8. Settings — backup / restore / reset');
   await nav(p,'settings');
   p.once('dialog',d=>d.accept());
   await p.click('#resetDataBtn'); await p.waitForTimeout(400);
-  check('reset restores the original 18 paper records', await p.evaluate(()=>state.records.length===18));
+  check('reset restores the 19 transcribed paper records', await p.evaluate(()=>state.records.length===19));
   check('reset clears the added week', await p.evaluate(()=>!state.records.some(r=>r.week==='2026-09-18')));
   const restored=await p.evaluate(b=>{const x=normalizeState(JSON.parse(b));state=x;saveState();setupSelectors();renderAll();return state.records.length},backup);
-  check('importing a backup restores the records', restored===19, 'records='+restored);
+  check('importing a backup restores the records', restored===20, 'records='+restored);
   const norm=await p.evaluate(()=>{const v=normalizeState({teams:state.teams,records:[{week:'2026-09-11',team:'Team Kamal',agent:'Mona',level:2}]});return v.records[0].area});
   check('records with a missing area are normalised to the paper area', norm==='Overall / General Knowledge (Imported Paper)', norm);
   const bad=await p.evaluate(()=>normalizeState(null).records.length);
-  check('a corrupt/empty backup falls back to the seed data', bad===18, 'records='+bad);
+  check('a corrupt/empty backup falls back to the seed data', bad===19, 'records='+bad);
   await ctx.close();
 }
 
@@ -320,7 +321,7 @@ G('10. Cloud sync');
   const {ctx,p}=await fresh({sync:true});
   check('connects on load with the baked-in URL', (await p.textContent('#syncPillText'))==='Synced');
   await nav(p,'settings'); await p.click('#syncPushBtn'); await p.waitForTimeout(2200);
-  check('first "Push to Sheet" seeds the sheet', store.rev>0 && store.state.records.length===18, 'rev='+store.rev);
+  check('first "Push to Sheet" seeds the sheet', store.rev>0 && store.state.records.length===19, 'rev='+store.rev);
   await nav(p,'assess');
   await p.fill('#assessWeek','2026-09-18'); await p.selectOption('#assessTeam','Team Kamal'); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(250);
   await p.$eval('#weeklyGrid [data-agent="Sarv"] .level-btn[data-level="4"]',e=>e.click());

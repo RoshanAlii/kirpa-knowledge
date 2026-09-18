@@ -186,7 +186,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.9 · Area Assessments</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.0 · Paper baseline</div>
   </div>
 </aside>
 <main class="main">
@@ -289,12 +289,37 @@ const DEFAULT_TEAMS=[
 ];
 const PAPER_WEEK='2026-09-11';
 const DEFAULT_RECORDS=[
-{week:PAPER_WEEK,team:'Team Kamal',agent:'Karan',area:LEGACY_AREA,level:3,comment:'Good, but not confident.'},{week:PAPER_WEEK,team:'Team Kamal',agent:'Sarv',area:LEGACY_AREA,level:3,comment:'Good, but needs work.'},{week:PAPER_WEEK,team:'Team Kamal',agent:'Mona',area:LEGACY_AREA,level:1,comment:'Poor.'},{week:PAPER_WEEK,team:'Team Kamal',agent:'Prachi',area:LEGACY_AREA,level:3,comment:'Good, but needs improvement.'},
-{week:PAPER_WEEK,team:'Team Priyanka',agent:'Spoorthi',area:LEGACY_AREA,level:3,comment:'Good, but can become better.'},{week:PAPER_WEEK,team:'Team Priyanka',agent:'Geetika',area:LEGACY_AREA,level:2,comment:'Weak, but better.'},{week:PAPER_WEEK,team:'Team Priyanka',agent:'Akshay',area:LEGACY_AREA,level:2,comment:'Weak.'},
-{week:PAPER_WEEK,team:'Team Saloni',agent:'Riya',area:LEGACY_AREA,level:1,comment:'Poor.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Samaksh',area:LEGACY_AREA,level:2,comment:'Weak, but better.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Ritika',area:LEGACY_AREA,level:2,comment:'Weak, but better; lacks confidence.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Sahil Bedi',area:LEGACY_AREA,level:1,comment:'Poor.'},{week:PAPER_WEEK,team:'Team Saloni',agent:'Aasfa',area:LEGACY_AREA,level:1,comment:'Very poor; no confidence.'},
-{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Arbaz',area:LEGACY_AREA,level:3,comment:'Good.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Sara',area:LEGACY_AREA,level:2,comment:'Weak.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Kavita',area:LEGACY_AREA,level:2,comment:'Weak; no confidence.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Barkha',area:LEGACY_AREA,level:2,comment:'Weak.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Kirat',area:LEGACY_AREA,level:2,comment:'Weak.'},{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Preeti',area:LEGACY_AREA,level:3,comment:'Good.'}
+// Transcribed from the four handwritten Kirpa pads (week ending 11 Sep 2026).
+// The pads record one overall judgement per agent, not per knowledge area, so
+// every row lands in the imported-paper area. An agent with a blank row was not
+// assessed that day and gets no record at all.
+// --- pad headed "Kamal" (Team Kamal) ---
+{week:PAPER_WEEK,team:'Team Kamal',agent:'Karan',area:LEGACY_AREA,level:3,comment:'Good, but not confident.'},
+{week:PAPER_WEEK,team:'Team Kamal',agent:'Sarv',area:LEGACY_AREA,level:3,comment:'Good, but needs work.'},
+{week:PAPER_WEEK,team:'Team Kamal',agent:'Mona',area:LEGACY_AREA,level:1,comment:'Poor.'},
+{week:PAPER_WEEK,team:'Team Kamal',agent:'Christine',area:LEGACY_AREA,level:1,comment:'Very poor.'},
+{week:PAPER_WEEK,team:'Team Kamal',agent:'Prachi',area:LEGACY_AREA,level:3,comment:'Good, but needs improvement.'},
+// --- unheaded pad, agents identify Team Priyanka ---
+{week:PAPER_WEEK,team:'Team Priyanka',agent:'Spoorthi',area:LEGACY_AREA,level:3,comment:'Good, but should improve.'},
+{week:PAPER_WEEK,team:'Team Priyanka',agent:'Geetika',area:LEGACY_AREA,level:2,comment:'Weak, but better.'},
+{week:PAPER_WEEK,team:'Team Priyanka',agent:'Akshay',area:LEGACY_AREA,level:2,comment:'Weak.'},
+// --- pad headed "Sal" (Team Saloni) ---
+{week:PAPER_WEEK,team:'Team Saloni',agent:'Riya',area:LEGACY_AREA,level:1,comment:'Poor.'},
+{week:PAPER_WEEK,team:'Team Saloni',agent:'Samaksh',area:LEGACY_AREA,level:2,comment:'Weak, but better.'},
+{week:PAPER_WEEK,team:'Team Saloni',agent:'Ritika',area:LEGACY_AREA,level:2,comment:'Weak, but better; lacks confidence.'},
+{week:PAPER_WEEK,team:'Team Saloni',agent:'Sahil Bedi',area:LEGACY_AREA,level:1,comment:'Poor.'},
+{week:PAPER_WEEK,team:'Team Saloni',agent:'Aasfa',area:LEGACY_AREA,level:1,comment:'Very poor; not confident.'},
+// --- unheaded pad, agents identify Team Manpreet Ma'am ---
+{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Arbaz',area:LEGACY_AREA,level:3,comment:'Good.'},
+{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Sara',area:LEGACY_AREA,level:2,comment:'Weak.'},
+{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Kavita',area:LEGACY_AREA,level:2,comment:'Weak; no confidence.'},
+{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Barkha',area:LEGACY_AREA,level:2,comment:'Weak.'},
+{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Kirat',area:LEGACY_AREA,level:2,comment:'Weak.'},
+{week:PAPER_WEEK,team:"Team Manpreet Ma'am",agent:'Preeti',area:LEGACY_AREA,level:3,comment:'Good.'}
 ];
-const LEGACY=[{week:PAPER_WEEK,team:'Team Kamal',agent:'Chaitanya',area:LEGACY_AREA,level:1,comment:'Very poor.',notes:'Historical paper-only name; not mapped to Christine.'}];
+// The pad row previously read as a separate name "Chaitanya" is Christine, in
+// Team Kamal - it is now a normal record above rather than an unmapped stray.
+const LEGACY=[];
 const STORE='kirpaKnowledgeWeeklyBoard_v3';
 function deepClone(v){return JSON.parse(JSON.stringify(v))}
 function initialState(){return{teams:deepClone(DEFAULT_TEAMS),records:deepClone(DEFAULT_RECORDS),legacy:deepClone(LEGACY),inactive:[],version:3}}
@@ -455,8 +480,15 @@ var DEFAULT_TOKEN   = 'kirpa_aa7abca846471b077fa6671cbf6943f4';
 var CFG_KEY  = 'kirpaSyncCfg_v1';
 var GATE_KEY = 'kirpaGate_v1';
 var GATE_DAYS = 7;
-var POLL_MS  = 20000;
-var FAST_MS  = 7000;
+// Polling cadence. Every tick is a request to Apps Script, and Apps Script bills
+// daily script runtime, so an idle tab left open all day must cost almost nothing.
+var POLL_ACTIVE = 15000;   // someone is working in this tab right now
+var POLL_IDLE   = 45000;   // tab open, nobody touching it
+var POLL_DORMANT= 300000;  // open and untouched for a long while
+var POLL_WRITING= 8000;    // a write is queued and still needs to get out
+var FAIL_LADDER = [10000, 25000, 60000, 120000];   // back off, don't hammer
+var ACTIVE_FOR  = 5*60*1000;
+var DORMANT_AFTER = 25*60*1000;
 
 /* ===================== passcode gate ===================== */
 var gate      = document.getElementById('gate');
@@ -519,7 +551,11 @@ var elTok    = document.getElementById('syncToken');
 
 var cfg      = loadCfg();
 var localRev = 0;
-var pushTimer = null, pollTimer = null, started = false, pushing = false, pollEvery = 20000;
+var pushTimer = null, pollTimer = null, started = false, pushing = false, pollEvery = 0;
+var lastTouch = Date.now(), headSupported = true, pollsSaved = 0, fullReads = 0;
+['click','keydown','focus'].forEach(function(ev){
+  document.addEventListener(ev, function(){ lastTouch = Date.now(); }, true);
+});
 
 function loadCfg(){
   var c = {url:DEFAULT_API_URL, token:DEFAULT_TOKEN};
@@ -644,10 +680,15 @@ function reportFail(e, hard){
 }
 
 // poll faster while we are behind, slower once healthy
-function retune(){
-  var want = (failStreak>0 || dirty) ? FAST_MS : POLL_MS;
-  if(want !== pollEvery){ pollEvery = want; startPolling(); }
+function nextDelay(){
+  if(pending() || dirty) return POLL_WRITING;
+  if(failStreak) return FAIL_LADDER[Math.min(failStreak-1, FAIL_LADDER.length-1)];
+  var since = Date.now() - lastTouch;
+  if(since < ACTIVE_FOR)    return POLL_ACTIVE;
+  if(since < DORMANT_AFTER) return POLL_IDLE;
+  return POLL_DORMANT;
 }
+function retune(){ startPolling(); }
 
 function pull(quiet, adoptSameRev){
   if(!connected()) return Promise.resolve();
@@ -742,7 +783,10 @@ function flush(quiet){
     reportOk(j.rev,j.updatedAt);
     if(!quiet) toast('Saved to the Google Sheet');
     pushing=false;
-    return pull(true, true);    // adopt the server's merged result
+    // only re-read if someone else advanced the revision past our own write
+    return api({action:'head'}, 2).then(function(hj){
+      if((hj.rev||0) > localRev) return pull(true, true);
+    }).catch(function(){ return pull(true, true); });
   }).catch(function(e){
     pushing=false;
     // a patch against an empty sheet needs a full copy first
@@ -881,9 +925,38 @@ saveState = function(){
 };
 window.saveState = saveState;
 
+// self-scheduling so the interval can adapt after every tick
 function startPolling(){
-  clearInterval(pollTimer);
-  pollTimer = setInterval(function(){ if(!document.hidden) pull(true); }, pollEvery);
+  clearTimeout(pollTimer);
+  pollEvery = nextDelay();
+  pollTimer = setTimeout(function(){
+    if(document.hidden){ startPolling(); return; }     // hidden tabs cost nothing
+    checkForChanges().then(startPolling, startPolling);
+  }, pollEvery);
+}
+
+/* A poll asks only "has the revision moved?" - one cell on the server - and
+   pulls the whole dataset only when the answer is yes. Most polls find nothing,
+   so this is where nearly all of the saved runtime comes from. */
+function checkForChanges(){
+  if(!connected()) return Promise.resolve();
+  if(pending()) return flush(true);
+  if(!headSupported) return pull(true);
+  return api({action:'head'}, 2).then(function(j){
+    var rev = j.rev || 0;
+    if(rev > localRev){ fullReads++; return pull(true); }
+    pollsSaved++;
+    failStreak = 0; lastGoodAt = Date.now();
+    setPill('ok','Synced');
+    setStatus('Connected. Revision '+localRev+'. Checked '+agoText()+'. '
+      +pollsSaved+' light checks, '+fullReads+' full reads this session.');
+  }).catch(function(e){
+    if(/Unknown action/i.test(e.message||'')){   // script not updated yet
+      headSupported = false;
+      return pull(true);
+    }
+    reportFail(e, false);
+  });
 }
 
 function startSync(){
