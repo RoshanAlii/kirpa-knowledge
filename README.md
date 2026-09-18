@@ -24,6 +24,10 @@ Hosted on GitHub Pages; shared data lives in a Google Sheet via a small Apps Scr
   moment of scoring. It prefers the same knowledge area; if the agent has no history in that area it
   falls back to their most recent record in any area and names it, e.g. `Last time · 11 Sep (Paper)`.
   Agents with no history at all read "No earlier record".
+- Per-area progress: the Assess screen shows "**3 of 5** scored for Objection · still to score:
+  Nikita, Aanchal". The dashboard's coverage figure is week-level - it counts an agent as assessed
+  if they have a record in **any** area - so it cannot show a per-area gap. The area rows on the
+  dashboard now carry their own `n/total` count for the same reason.
 - Partial saves: score only the agents who are present; the rest keep whatever was saved before.
   Click a selected level again to clear that agent. **Reset Form** discards unsaved edits and
   reloads what is stored - it does not wipe earlier scores.
@@ -53,6 +57,10 @@ Google Sheet
   leaders save at the same moment without overwriting each other; sending the whole dataset (the
   obvious design) silently loses whichever save lands first. Roster edits send a `roster` patch;
   Import Backup and Reset send a deliberate full `put`.
+- **Revisions only move forward**: a `get` issued before a local save can arrive after it. Applying
+  that reply would silently roll the save back, so a pull is adopted only when its revision is
+  *higher* than the one held locally (or, right after our own write lands, equal - to pick up
+  anything another leader merged alongside it).
 - **Outbox**: queued operations are persisted to `localStorage`, so closing the tab mid-outage does
   not lose them - they are sent on next load.
 - **Reads**: the app polls every 20s (7s while it is behind, and on tab focus or regaining network). If the remote revision is newer than the
@@ -192,7 +200,12 @@ live.
 npm i playwright && npx playwright install chromium
 node qa-suite.mjs
 node qa-concurrency.mjs   # two leaders saving at the same moment
+node qa-partial-saves.mjs # partial saves and merge-by-agent
+node qa-race.mjs          # stale poll reply vs a local save
 ```
+
+`qa-race.mjs` samples state continuously rather than only at the end - a revert that a later poll
+heals is still a revert the user sees, and checking only the final state hides it.
 
 It asserts figures against an independent recompute from raw state rather than against the UI's own
 numbers, so a maths regression fails the suite rather than agreeing with itself.
@@ -205,3 +218,5 @@ numbers, so a maths regression fails the suite rather than agreeing with itself.
 | `Code.gs` | Google Apps Script backend |
 | `qa-suite.mjs` | Playwright regression suite (82 checks) |
 | `qa-concurrency.mjs` | Two-leader simultaneous-save test |
+| `qa-partial-saves.mjs` | Partial save, toggle-to-clear, stale-leader merge |
+| `qa-race.mjs` | Stale poll reply vs. a local save; per-area coverage |

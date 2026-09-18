@@ -147,6 +147,16 @@ html,body{max-width:100%;overflow-x:hidden}
 #view-reports .data-table th:not(:first-child),#view-reports .data-table td:not(:first-child){text-align:right}
 #view-reports .data-table th:first-child,#view-reports .data-table td:first-child{width:38%}
 
+
+/* per-area coverage */
+.area-row{grid-template-columns:minmax(120px,190px) minmax(0,1fr) 46px 48px}
+.area-n{font-size:11px;color:#98a2b1;text-align:right;white-space:nowrap}
+.area-n.short{color:#c2691a;font-weight:650}
+.area-progress{font-size:12px;color:#5f6d80;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:9px 13px;margin-bottom:12px;line-height:1.6}
+.area-progress strong{color:var(--ink)}
+.area-progress .missing{color:#c2691a}
+.area-progress.complete .missing{color:var(--green)}
+
 </style>
 </head>
 <body>
@@ -176,7 +186,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.8 · Area Assessments</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.9 · Area Assessments</div>
   </div>
 </aside>
 <main class="main">
@@ -213,7 +223,7 @@ html,body{max-width:100%;overflow-x:hidden}
 <section id="view-assess" class="view">
   <div class="page-head"><div><h2>Weekly Assessment</h2><p>Select the knowledge area first, then assess the whole team on that specific area.</p></div><div class="toolbar"><button class="btn btn-secondary" id="assessBack">Back to Dashboard</button><button class="btn btn-primary" id="saveWeekBtn">Save Weekly Assessment</button></div></div>
   <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><button class="btn btn-outline" id="clearTeamForm" title="Discard unsaved edits and reload what is already saved">Reset Form</button></div><div class="notice form-note">Choose one level per agent for the selected knowledge area. The button with a <span class="legend-dash"></span> dashed border is where that agent stood last time — so you can see movement as you score. Click a selected level again to clear it. Agents you do not touch keep whatever was saved before.</div></div>
-  <div class="panel"><div id="weeklyGrid" class="weekly-grid"></div></div>
+  <div class="panel"><div id="areaProgress" class="area-progress"></div><div id="weeklyGrid" class="weekly-grid"></div></div>
 </section>
 
 <section id="view-agents" class="view">
@@ -332,7 +342,7 @@ function renderDashboard(){
   const week=selectedWeek(),team=selectedTeam(),members=activeMembers(team),summ=agentSummaries(week,team),assessed=summ.filter(x=>x.assessed),count={1:0,2:0,3:0,4:0};assessed.forEach(x=>count[x.level]++);
   const total=assessed.length,score=avgNum(assessed.map(x=>x.score)),coverage=pct(total,members.length);
   document.getElementById('companyScore').textContent=score+'%';document.getElementById('scoreRing').style.background=`conic-gradient(var(--orange) 0deg ${score*3.6}deg,#e9eaec ${score*3.6}deg 360deg)`;
-  document.getElementById('coverageText').textContent=`${coverage}% assessment coverage`;document.getElementById('scoreBase').innerHTML=`Based on ${total} assessed / ${members.length} active agents<br>${fmtWeek(week)}`;
+  document.getElementById('coverageText').textContent=`${coverage}% assessed this week (in any area)`;document.getElementById('scoreBase').innerHTML=`Based on ${total} assessed / ${members.length} active agents<br>${fmtWeek(week)}`;
   const pw=prevWeek(week),movement=document.getElementById('movementText');if(pw){const prev=companyScore(pw,team),diff=score-prev;movement.classList.toggle('neutral',diff===0);movement.textContent=`${diff>0?'+':''}${diff} pts vs previous week`}else{movement.classList.add('neutral');movement.textContent='Baseline week'};
   [['poor',1],['weak',2],['good',3],['very',4]].forEach(([k,l])=>{document.getElementById(k+'Count').textContent=count[l];document.getElementById(k+'Pct').textContent=pct(count[l],total)+'%'});
   document.getElementById('reviewStrip').classList.add('hidden');
@@ -340,7 +350,13 @@ function renderDashboard(){
 }
 function renderDistribution(count){const mx=Math.max(5,...Object.values(count));document.getElementById('yMax').textContent=mx;const spec=[[1,'Poor','red'],[2,'Weak','orange'],[3,'Good','yellow'],[4,'Very Good','green']];document.getElementById('distributionBars').innerHTML=spec.map(([l,n,c])=>`<div class="barwrap"><div class="barvalue">${count[l]}</div><div class="bar ${c}" style="height:${Math.max(2,Math.round(count[l]/mx*110))}px"></div><span class="xlabel">${n}</span></div>`).join('')}
 function areaStats(week,team='ALL'){return AREAS.map(area=>{const rs=state.records.filter(r=>r.week===week&&(team==='ALL'||r.team===team)&&r.area===area&&r.level);return{area,score:rs.length?avgNum(rs.map(r=>SCORES[r.level])):null,count:rs.length}})}
-function renderAreaScores(week,team){document.getElementById('teamScores').innerHTML=areaStats(week,team).map(x=>`<div class="area-row"><span>${esc(x.area)}</span><div class="progress"><i style="width:${x.score||0}%"></i></div><b>${x.score===null?'—':x.score+'%'}</b></div>`).join('')}
+function renderAreaScores(week,team){
+  const roster=activeMembers(team).length;
+  document.getElementById('teamScores').innerHTML=areaStats(week,team).map(x=>{
+    const short=roster&&x.count<roster;
+    return `<div class="area-row"><span>${esc(x.area)}</span><div class="progress"><i style="width:${x.score||0}%"></i></div><span class="area-n${short?' short':''}" title="agents scored in this area">${x.count}/${roster}</span><b>${x.score===null?'—':x.score+'%'}</b></div>`;
+  }).join('');
+}
 function renderGaps(week,team){const stats=areaStats(week,team).slice().sort((a,b)=>(a.score??101)-(b.score??101));document.getElementById('trainingGaps').innerHTML=stats.map((x,i)=>`<div class="gap-row"><span class="rank r${i+1}">${i+1}</span><span>${esc(x.area)}</span><b class="${i===0?'c-red':i===1?'c-orange':i===2?'c-olive':'c-green'}">${x.score===null?'—':x.score+'%'}</b></div>`).join('')}
 function levelCard(level,title,cls,items){return`<div class="level-card"><div class="level-head ${cls}">${title} (${items.length})</div>${items.slice(0,6).map(x=>`<div class="agent-row" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}"><span class="name">${esc(x.agent)}</span><span class="team">${esc(x.team)}</span></div>`).join('')}${items.length>6?`<div class="more" data-filter-level="${level}">+ ${items.length-6} more agents</div>`:''}${!items.length?'<div class="empty-line">No agents</div>':''}</div>`}
 function renderLevels(summ){const a=summ.filter(x=>x.assessed);document.getElementById('levelGrid').innerHTML=levelCard(1,'Poor','poor',a.filter(x=>x.level===1))+levelCard(2,'Weak','weak',a.filter(x=>x.level===2))+levelCard(3,'Good','good',a.filter(x=>x.level===3))+levelCard(4,'Very Good','very',a.filter(x=>x.level===4))}
@@ -387,6 +403,20 @@ function renderAssessmentGrid(){
     const note=(anyHistory&&!prev)?'<span class="prev-none">No earlier record</span>':'';
     return `<div class="assessment-person" data-agent="${esc(agent)}"><div class="person-name"><strong>${esc(agent)}</strong><span>${sub}</span>${note}</div><div class="level-buttons">${buttons}</div><input class="field comment-input" placeholder="Coaching comment (optional)" value="${esc(r?.comment||'')}"></div>`;
   }).join('');
+  renderAreaProgress(week,team,area,roster);
+}
+
+/* Who is still missing in THIS knowledge area. The dashboard's coverage figure
+   counts an agent as assessed if they have a record in any area that week, so
+   it cannot show a per-area gap. */
+function renderAreaProgress(week,team,area,roster){
+  const el=document.getElementById('areaProgress'); if(!el)return;
+  const missing=roster.filter(a=>!exactRecord(week,team,a,area));
+  const done=roster.length-missing.length;
+  el.className='area-progress'+(missing.length?'':' complete');
+  el.innerHTML=`<strong>${done} of ${roster.length}</strong> scored for ${esc(shortArea(area))}`
+    +(missing.length?` · <span class="missing">still to score: ${missing.map(esc).join(', ')}</span>`
+                   : ' · <span class="missing">whole team covered</span>');
 }
 function saveWeeklyAssessment(){const week=document.getElementById('assessWeek').value,team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value;if(!week)return alert('Select a week ending date.');if(!area)return alert('Select a knowledge area.');const rows=[...document.querySelectorAll('#weeklyGrid .assessment-person')];let saved=0;rows.forEach(row=>{const agent=row.dataset.agent,sel=row.querySelector('.level-btn.selected'),comment=row.querySelector('.comment-input').value.trim(),existing=exactRecord(week,team,agent,area);if(sel){const level=Number(sel.dataset.level);if(existing){existing.level=level;existing.comment=comment}else state.records.push({week,team,agent,area,level,comment});saved++}else if(existing){state.records=state.records.filter(r=>r!==existing)}});saveState();setupSelectors();document.getElementById('weekFilter').value=week;document.getElementById('teamFilter').value=team;renderAll();toast(`${saved} ${area} assessment${saved===1?'':'s'} saved for ${team}`);setView('dashboard')}
 function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?`${shortArea(r.area)}: ${r.comment}`:'—'}
@@ -580,6 +610,7 @@ function restoreFilters(f){
 }
 
 function applyRemote(remote, rev){
+  if(rev < localRev) return;          // never step backwards
   var f = currentFilters();
   state = normalizeState(remote);
   localStorage.setItem(STORE, JSON.stringify(state));
@@ -618,17 +649,26 @@ function retune(){
   if(want !== pollEvery){ pollEvery = want; startPolling(); }
 }
 
-function pull(quiet){
+function pull(quiet, adoptSameRev){
   if(!connected()) return Promise.resolve();
   if(!quiet) setPill('busy','Syncing…');
   return api({action:'get'}).then(function(j){
-    if(j.rev && j.rev !== localRev && j.state && !pending()){
-      applyRemote(j.state, j.rev);
-      toast(quiet ? 'Updated with changes from another device' : 'Pulled latest data from the Google Sheet');
-    }else if(j.rev){
-      localRev = j.rev;
+    var rev = j.rev || 0;
+    // Revisions only ever move forward. A GET issued before a local save can
+    // land after it; without this, that stale reply would overwrite the save.
+    var fresher = rev > localRev;
+
+    if((fresher || (adoptSameRev && rev >= localRev)) && j.state && !pending()){
+      applyRemote(j.state, rev);
+      if(fresher) toast(quiet ? 'Updated with changes from another device'
+                              : 'Pulled latest data from the Google Sheet');
+    }else if(fresher && !j.state){
+      localRev = rev;                 // sheet is empty; nothing to adopt
     }
-    reportOk(j.rev, j.updatedAt);
+    // when a write is still queued we deliberately leave localRev alone, so the
+    // remote change is picked up on the next poll instead of being skipped
+
+    reportOk(Math.max(rev, localRev), j.updatedAt);
     if(pending()) flush(true);
     else retune();
   }).catch(function(e){ reportFail(e, !quiet); });
@@ -702,7 +742,7 @@ function flush(quiet){
     reportOk(j.rev,j.updatedAt);
     if(!quiet) toast('Saved to the Google Sheet');
     pushing=false;
-    return pull(true);          // converge with whatever others changed
+    return pull(true, true);    // adopt the server's merged result
   }).catch(function(e){
     pushing=false;
     // a patch against an empty sheet needs a full copy first
@@ -856,7 +896,7 @@ function startSync(){
     setStatus('Not connected. Paste the Apps Script web app URL above to share data across devices.');
     return;
   }
-  pull(false).then(function(){ if(pending()) flush(true); });
+  pull(false, true).then(function(){ if(pending()) flush(true); });
   startPolling();
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) pull(true); });
   window.addEventListener('online', function(){ pull(true); });
