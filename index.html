@@ -118,6 +118,35 @@ html,body{max-width:100%;overflow-x:hidden}
 /* rank chips: keep the ordering signal, drop the traffic-light weight */
 .rank{background:#f1f3f6!important;color:#5b6879!important;font-weight:700}
 
+
+/* ==== assessment page: rhythm and breathing room ==== */
+.form-row{grid-template-columns:180px 230px minmax(260px,320px) auto;justify-content:start;column-gap:16px}
+.form-note{margin-top:14px}
+.weekly-grid{gap:8px}
+.assessment-person{grid-template-columns:190px minmax(300px,1.05fr) minmax(230px,1fr);gap:20px;padding:13px 16px;align-items:center}
+.person-name strong{font-size:14px;line-height:1.3}
+.person-name span{font-size:11.5px;line-height:1.5}
+/* only reserve room under the buttons when captions are actually being shown */
+.level-cell{min-height:0}
+.weekly-grid.has-history .level-cell{min-height:60px}
+.level-buttons{gap:8px}
+.level-btn{padding:9px 6px;font-size:10.5px}
+.comment-input{height:38px}
+/* the two panels on this page were hugging each other */
+#view-assess .panel+.panel{margin-top:14px}
+
+
+/* ==== teams page ==== */
+.team-grid{align-items:start}
+.score-none{font-size:15px;font-weight:750;color:#a8b0bc}
+
+
+/* ==== stop short cards stretching to their neighbour's height ==== */
+.settings-grid,.report-grid{align-items:start}
+/* numbers read better right-aligned; only the reports tables are all-numeric ==== */
+#view-reports .data-table th:not(:first-child),#view-reports .data-table td:not(:first-child){text-align:right}
+#view-reports .data-table th:first-child,#view-reports .data-table td:first-child{width:38%}
+
 </style>
 </head>
 <body>
@@ -147,7 +176,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.4 · Area Assessments</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.5 · Area Assessments</div>
   </div>
 </aside>
 <main class="main">
@@ -162,7 +191,7 @@ html,body{max-width:100%;overflow-x:hidden}
 </header>
 <div class="content">
 <section id="view-dashboard" class="view active">
-  <div class="add-row"><button class="add-btn" id="addAssessmentBtn"><b>＋</b>Add Assessment</button></div>
+  <div class="page-head"><div><h2>Dashboard</h2><p>Company knowledge position for the selected week.</p></div><div class="toolbar"><button class="btn btn-primary" id="addAssessmentBtn">Add Assessment</button></div></div>
   <div id="reviewStrip" class="review-strip hidden"></div>
   <div class="metrics">
     <div class="card score-card"><h2>Company Knowledge Score</h2><div class="score-body"><div class="ring" id="scoreRing"><div class="ring-center"><strong id="companyScore">0%</strong><span>Knowledge</span></div></div><div class="score-copy"><div id="movementText" class="baseline neutral">Baseline week</div><div id="coverageText" class="sub">0% assessment coverage</div><div id="scoreBase" class="base"></div></div></div></div>
@@ -183,7 +212,7 @@ html,body{max-width:100%;overflow-x:hidden}
 
 <section id="view-assess" class="view">
   <div class="page-head"><div><h2>Weekly Assessment</h2><p>Select the knowledge area first, then assess the whole team on that specific area.</p></div><div class="toolbar"><button class="btn btn-secondary" id="assessBack">Back to Dashboard</button><button class="btn btn-primary" id="saveWeekBtn">Save Weekly Assessment</button></div></div>
-  <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><div class="notice">Choose one level per agent for the selected knowledge area. The button with a <span class="legend-dash"></span> dashed border is where that agent stood last time — so you can see movement as you score.</div><button class="btn btn-outline" id="clearTeamForm">Clear Form</button></div></div>
+  <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><button class="btn btn-outline" id="clearTeamForm">Clear Form</button></div><div class="notice form-note">Choose one level per agent for the selected knowledge area. The button with a <span class="legend-dash"></span> dashed border is where that agent stood last time — so you can see movement as you score.</div></div>
   <div class="panel"><div id="weeklyGrid" class="weekly-grid"></div></div>
 </section>
 
@@ -296,7 +325,7 @@ function setupSelectors(){
   document.getElementById('teamFilter').innerHTML=teams.map(t=>`<option value="${esc(t)}">${t==='ALL'?'All Teams':esc(t)}</option>`).join('');
   document.getElementById('agentTeamFilter').innerHTML=teams.map(t=>`<option value="${esc(t)}">${t==='ALL'?'All Teams':esc(t)}</option>`).join('');
   document.getElementById('assessTeam').innerHTML=state.teams.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
-  document.getElementById('assessArea').innerHTML=[...AREAS,LEGACY_AREA].map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  document.getElementById('assessArea').innerHTML=[...AREAS,LEGACY_AREA].map(a=>`<option value="${esc(a)}">${esc(areaLabel(a))}</option>`).join('');
   document.getElementById('newAgentTeam').innerHTML=state.teams.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
 }
 function renderDashboard(){
@@ -324,6 +353,7 @@ function renderInsights(week,team,summ){
 function prepareAssessment(){const week=selectedWeek(),team=selectedTeam()==='ALL'?state.teams[0].name:selectedTeam();document.getElementById('assessWeek').value=week;document.getElementById('assessTeam').value=team;const areaSel=document.getElementById('assessArea');areaSel.value=week===PAPER_WEEK?LEGACY_AREA:AREAS[0];renderAssessmentGrid()}
 const AREA_SHORT={'Objection Handling':'Objection','Investment / ROI Knowledge':'ROI','Dubai Area & Market Knowledge':'Market','Project / Product Knowledge':'Product','Sales Presentation / Pitch':'Pitch'};
 function shortArea(a){return AREA_SHORT[a]||(a===LEGACY_AREA?'Paper':a)}
+function areaLabel(a){return a===LEGACY_AREA?'Overall / General (paper import)':a}
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function shortDate(w){const d=new Date(w+'T12:00:00');return isNaN(d)?w:d.getDate()+' '+MON[d.getMonth()]}
 function previousRecordFor(week,team,agent,area){
@@ -341,23 +371,27 @@ function renderAssessmentGrid(){
         area=document.getElementById('assessArea').value,
         t=state.teams.find(x=>x.name===team);
   if(!t)return;
-  document.getElementById('weeklyGrid').innerHTML=t.members.filter(m=>!state.inactive.includes(team+'|'+m)).map(agent=>{
+  const roster=t.members.filter(m=>!state.inactive.includes(team+'|'+m));
+  const anyHistory=roster.some(a=>previousRecordFor(week,team,a,area));
+  const grid=document.getElementById('weeklyGrid');
+  grid.classList.toggle('has-history',anyHistory);
+  grid.innerHTML=roster.map(agent=>{
     const r=exactRecord(week,team,agent,area),
           prev=previousRecordFor(week,team,agent,area);
     const buttons=[1,2,3,4].map(l=>{
       const isPrev=prev&&prev.level===l;
-      const tag=isPrev?`<span class="prev-tag">Last time · <b>${shortDate(prev.week)}</b>${prev.sameArea?'':'<br>('+esc(shortArea(prev.area))+')'}</span>`:'';
+      const tag=isPrev?`<span class="prev-tag">Last time · <b>${shortDate(prev.week)}</b>${prev.sameArea?'':' ('+esc(shortArea(prev.area))+')'}</span>`:'';
       return `<div class="level-cell"><button type="button" class="level-btn${r&&r.level===l?' selected':''}${isPrev?' prev':''}" data-level="${l}">${LEVELS[l]}</button>${tag}</div>`;
     }).join('');
     const sub=`${agent===t.leader?'Team leader · ':''}${esc(team)}`;
-    const note=prev?'':'<span class="prev-none">No earlier record</span>';
+    const note=(anyHistory&&!prev)?'<span class="prev-none">No earlier record</span>':'';
     return `<div class="assessment-person" data-agent="${esc(agent)}"><div class="person-name"><strong>${esc(agent)}</strong><span>${sub}</span>${note}</div><div class="level-buttons">${buttons}</div><input class="field comment-input" placeholder="Coaching comment (optional)" value="${esc(r?.comment||'')}"></div>`;
   }).join('');
 }
 function saveWeeklyAssessment(){const week=document.getElementById('assessWeek').value,team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value;if(!week)return alert('Select a week ending date.');if(!area)return alert('Select a knowledge area.');const rows=[...document.querySelectorAll('#weeklyGrid .assessment-person')];let saved=0;rows.forEach(row=>{const agent=row.dataset.agent,sel=row.querySelector('.level-btn.selected'),comment=row.querySelector('.comment-input').value.trim(),existing=exactRecord(week,team,agent,area);if(sel){const level=Number(sel.dataset.level);if(existing){existing.level=level;existing.comment=comment}else state.records.push({week,team,agent,area,level,comment});saved++}else if(existing){state.records=state.records.filter(r=>r!==existing)}});saveState();setupSelectors();document.getElementById('weekFilter').value=week;document.getElementById('teamFilter').value=team;renderAll();toast(`${saved} ${area} assessment${saved===1?'':'s'} saved for ${team}`);setView('dashboard')}
 function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?`${shortArea(r.area)}: ${r.comment}`:'—'}
 function renderAgents(){const week=selectedWeek(),team=document.getElementById('agentTeamFilter').value||'ALL',lvl=document.getElementById('agentLevelFilter').value,q=(document.getElementById('agentSearch').value||'').trim().toLowerCase();let rows=agentSummaries(week,team).filter(x=>!q||x.agent.toLowerCase().includes(q));if(lvl==='NA')rows=rows.filter(x=>!x.assessed);else if(/^\d$/.test(lvl))rows=rows.filter(x=>x.assessed&&x.level===Number(lvl));else if(lvl==='REVIEW')rows=[];document.getElementById('agentsBody').innerHTML=rows.map(x=>`<tr><td><span class="agent-link" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}">${esc(x.agent)}</span></td><td>${esc(x.team)}</td><td>${x.assessed?`<span class="badge b${x.level}">${LEVELS[x.level]}</span>`:'<span class="badge b0">Not assessed</span>'}</td><td>${x.assessed?x.score+'%':'—'}</td><td>${esc(latestComment(x))}</td><td>${fmtWeek(week).replace('Week ending: ','')}</td></tr>`).join('')}
-function renderTeams(){const week=selectedWeek();document.getElementById('teamGrid').innerHTML=state.teams.map(t=>{const members=activeMembers(t.name),summ=agentSummaries(week,t.name),ass=summ.filter(x=>x.assessed),score=avgNum(ass.map(x=>x.score));return`<div class="panel team-card" data-team-card="${esc(t.name)}"><div style="font-size:10px;letter-spacing:.1em;color:#9a7862;text-transform:uppercase">${members.length} members</div><h3>${esc(t.name)}</h3><div class="tl">TL · ${esc(t.leader)}</div><div style="margin-top:14px"><span class="score-big">${ass.length?score+'%':'—'}</span><div style="font-size:11px;color:#8590a0">${ass.length} of ${members.length} assessed · ${fmtWeek(week)}</div></div><div class="team-members">${summ.map(m=>`<div class="team-person"><span>${esc(m.agent)}${m.agent===t.leader?' <small style="color:#9a7862">(TL)</small>':''}</span><span>${m.assessed?LEVELS[m.level]:'—'}</span></div>`).join('')}</div></div>`}).join('')}
+function renderTeams(){const week=selectedWeek();document.getElementById('teamGrid').innerHTML=state.teams.map(t=>{const members=activeMembers(t.name),summ=agentSummaries(week,t.name),ass=summ.filter(x=>x.assessed),score=avgNum(ass.map(x=>x.score));return`<div class="panel team-card" data-team-card="${esc(t.name)}"><div style="font-size:10px;letter-spacing:.1em;color:#9a7862;text-transform:uppercase">${members.length} members</div><h3>${esc(t.name)}</h3><div class="tl">TL · ${esc(t.leader)}</div><div style="margin-top:14px">${ass.length?`<span class="score-big">${score}%</span>`:'<span class="score-none">Not assessed yet</span>'}<div style="font-size:11px;color:#8590a0">${ass.length} of ${members.length} assessed · ${fmtWeek(week)}</div></div><div class="team-members">${summ.map(m=>`<div class="team-person"><span>${esc(m.agent)}${m.agent===t.leader?' <small style="color:#9a7862">(TL)</small>':''}</span><span>${m.assessed?LEVELS[m.level]:'—'}</span></div>`).join('')}</div></div>`}).join('')}
 function renderReports(){const weeks=allWeeks().slice().sort().reverse();document.getElementById('weeklyReportBody').innerHTML=weeks.map(w=>{const members=activeMembers('ALL'),s=agentSummaries(w,'ALL'),a=s.filter(x=>x.assessed),c={1:0,2:0,3:0,4:0};a.forEach(x=>c[x.level]++);return`<tr><td>${fmtWeek(w).replace('Week ending: ','')}</td><td>${a.length}</td><td>${pct(a.length,members.length)}%</td><td>${avgNum(a.map(x=>x.score))}%</td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td>${c[4]}</td></tr>`}).join('');const w=selectedWeek();document.getElementById('teamReportBody').innerHTML=state.teams.map(t=>{const m=activeMembers(t.name),a=agentSummaries(w,t.name).filter(x=>x.assessed);return`<tr><td>${esc(t.name)}</td><td>${m.length}</td><td>${a.length}</td><td>${pct(a.length,m.length)}%</td><td>${a.length?avgNum(a.map(x=>x.score))+'%':'—'}</td></tr>`}).join('');const a=agentSummaries(w,'ALL').filter(x=>x.assessed),members=activeMembers('ALL');document.getElementById('reportKpis').innerHTML=`<div class="kpi"><span>Active Agents</span><strong>${members.length}</strong></div><div class="kpi"><span>Assessed</span><strong>${a.length}</strong></div><div class="kpi"><span>Coverage</span><strong>${pct(a.length,members.length)}%</strong></div><div class="kpi"><span>Knowledge Score</span><strong>${avgNum(a.map(x=>x.score))}%</strong></div>`}
 function renderAdmin(){document.getElementById('adminBody').innerHTML=state.teams.flatMap(t=>t.members.map(agent=>{const key=t.name+'|'+agent,inactive=state.inactive.includes(key);return`<tr><td>${esc(agent)}</td><td>${esc(t.name)}</td><td>${agent===t.leader?'Yes':'No'}</td><td>${inactive?'<span class="badge b0">Inactive</span>':'<span class="badge b4">Active</span>'}</td><td><button class="btn btn-outline admin-toggle" data-key="${esc(key)}">${inactive?'Reactivate':'Deactivate'}</button></td></tr>`})).join('')}
 function openAgent(agent,team){const all=state.records.filter(r=>r.agent===agent&&r.team===team&&r.level).sort((a,b)=>b.week.localeCompare(a.week)||a.area.localeCompare(b.area));const weeks=[...new Set(all.map(r=>r.week))].sort().reverse(),currWeek=weeks[0],currSummary=currWeek?agentSummaries(currWeek,team).find(x=>x.agent===agent):null;document.getElementById('modalAgentName').textContent=agent;document.getElementById('modalTeam').textContent=team;document.getElementById('modalKpis').innerHTML=`<div class="mini-kpi"><span>Current Level</span><strong>${currSummary?.assessed?LEVELS[currSummary.level]:'Not assessed'}</strong></div><div class="mini-kpi"><span>Current Score</span><strong>${currSummary?.assessed?currSummary.score+'%':'—'}</strong></div><div class="mini-kpi"><span>Area Assessments</span><strong>${all.length}</strong></div>`;document.getElementById('modalHistory').innerHTML=all.length?all.map(r=>`<div class="history-entry"><span>${fmtWeek(r.week).replace('Week ending: ','')}</span><span><span class="badge b${r.level}">${LEVELS[r.level]}</span></span><span><b>${esc(r.area)}</b>${r.comment?' · '+esc(r.comment):''}</span></div>`).join(''):'<div class="empty-line">No assessments yet.</div>';document.getElementById('agentModal').classList.add('open')}
