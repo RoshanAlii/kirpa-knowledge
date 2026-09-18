@@ -107,6 +107,17 @@ html,body{max-width:100%;overflow-x:hidden}
 .prev-tag{font-size:9.5px;color:#7d8798}
 .prev-tag b{color:#4a5668}
 
+
+/* ==== decluttered visuals: no decorative glyphs, no initial bubbles ==== */
+.people-icon,.level-icon,.ih-icon{display:none}
+.metric{display:flex;flex-direction:column;justify-content:center;padding:20px 21px}
+.metric strong{margin-top:0}
+.agent-row{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:10px}
+.level-head,.insight-head{letter-spacing:.01em}
+.insight-head .view{font-weight:600;letter-spacing:.02em}
+/* rank chips: keep the ordering signal, drop the traffic-light weight */
+.rank{background:#f1f3f6!important;color:#5b6879!important;font-weight:700}
+
 </style>
 </head>
 <body>
@@ -136,7 +147,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.3 · Area Assessments</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.4 · Area Assessments</div>
   </div>
 </aside>
 <main class="main">
@@ -155,10 +166,10 @@ html,body{max-width:100%;overflow-x:hidden}
   <div id="reviewStrip" class="review-strip hidden"></div>
   <div class="metrics">
     <div class="card score-card"><h2>Company Knowledge Score</h2><div class="score-body"><div class="ring" id="scoreRing"><div class="ring-center"><strong id="companyScore">0%</strong><span>Knowledge</span></div></div><div class="score-copy"><div id="movementText" class="baseline neutral">Baseline week</div><div id="coverageText" class="sub">0% assessment coverage</div><div id="scoreBase" class="base"></div></div></div></div>
-    <div class="card metric red"><div class="people-icon">♟</div><strong id="poorCount">0</strong><div class="label">Poor</div><div class="pct" id="poorPct">0%</div></div>
-    <div class="card metric orange"><div class="people-icon">♟</div><strong id="weakCount">0</strong><div class="label">Weak</div><div class="pct" id="weakPct">0%</div></div>
-    <div class="card metric yellow"><div class="people-icon">♟</div><strong id="goodCount">0</strong><div class="label">Good</div><div class="pct" id="goodPct">0%</div></div>
-    <div class="card metric green"><div class="people-icon">♟</div><strong id="veryCount">0</strong><div class="label">Very Good</div><div class="pct" id="veryPct">0%</div></div>
+    <div class="card metric red"><strong id="poorCount">0</strong><div class="label">Poor</div><div class="pct" id="poorPct">0%</div></div>
+    <div class="card metric orange"><strong id="weakCount">0</strong><div class="label">Weak</div><div class="pct" id="weakPct">0%</div></div>
+    <div class="card metric yellow"><strong id="goodCount">0</strong><div class="label">Good</div><div class="pct" id="goodPct">0%</div></div>
+    <div class="card metric green"><strong id="veryCount">0</strong><div class="label">Very Good</div><div class="pct" id="veryPct">0%</div></div>
   </div>
   <div class="midgrid">
     <div class="card section-card"><h2>Knowledge Distribution</h2><div class="chart-area"><div class="gridline g1"></div><div class="gridline g2"></div><div class="gridline g3"></div><div class="gridline g4"></div><div class="ylabels"><span id="yMax">10</span><span></span><span></span><span></span><span>0</span></div><div class="bars" id="distributionBars"></div></div></div>
@@ -293,7 +304,7 @@ function renderDashboard(){
   const total=assessed.length,score=avgNum(assessed.map(x=>x.score)),coverage=pct(total,members.length);
   document.getElementById('companyScore').textContent=score+'%';document.getElementById('scoreRing').style.background=`conic-gradient(var(--orange) 0deg ${score*3.6}deg,#e9eaec ${score*3.6}deg 360deg)`;
   document.getElementById('coverageText').textContent=`${coverage}% assessment coverage`;document.getElementById('scoreBase').innerHTML=`Based on ${total} assessed / ${members.length} active agents<br>${fmtWeek(week)}`;
-  const pw=prevWeek(week),movement=document.getElementById('movementText');if(pw){const prev=companyScore(pw,team),diff=score-prev;movement.classList.toggle('neutral',diff===0);movement.textContent=`${diff>0?'↑ ':diff<0?'↓ ':''}${diff>0?'+':''}${diff} pts vs previous week`}else{movement.classList.add('neutral');movement.textContent='Baseline week'};
+  const pw=prevWeek(week),movement=document.getElementById('movementText');if(pw){const prev=companyScore(pw,team),diff=score-prev;movement.classList.toggle('neutral',diff===0);movement.textContent=`${diff>0?'+':''}${diff} pts vs previous week`}else{movement.classList.add('neutral');movement.textContent='Baseline week'};
   [['poor',1],['weak',2],['good',3],['very',4]].forEach(([k,l])=>{document.getElementById(k+'Count').textContent=count[l];document.getElementById(k+'Pct').textContent=pct(count[l],total)+'%'});
   document.getElementById('reviewStrip').classList.add('hidden');
   renderDistribution(count);renderAreaScores(week,team);renderGaps(week,team);renderLevels(summ);renderInsights(week,team,summ);
@@ -302,13 +313,13 @@ function renderDistribution(count){const mx=Math.max(5,...Object.values(count));
 function areaStats(week,team='ALL'){return AREAS.map(area=>{const rs=state.records.filter(r=>r.week===week&&(team==='ALL'||r.team===team)&&r.area===area&&r.level);return{area,score:rs.length?avgNum(rs.map(r=>SCORES[r.level])):null,count:rs.length}})}
 function renderAreaScores(week,team){document.getElementById('teamScores').innerHTML=areaStats(week,team).map(x=>`<div class="area-row"><span>${esc(x.area)}</span><div class="progress"><i style="width:${x.score||0}%"></i></div><b>${x.score===null?'—':x.score+'%'}</b></div>`).join('')}
 function renderGaps(week,team){const stats=areaStats(week,team).slice().sort((a,b)=>(a.score??101)-(b.score??101));document.getElementById('trainingGaps').innerHTML=stats.map((x,i)=>`<div class="gap-row"><span class="rank r${i+1}">${i+1}</span><span>${esc(x.area)}</span><b class="${i===0?'c-red':i===1?'c-orange':i===2?'c-olive':'c-green'}">${x.score===null?'—':x.score+'%'}</b></div>`).join('')}
-function levelCard(level,title,cls,items){return`<div class="level-card"><div class="level-head ${cls}"><span class="level-icon">♟</span>${title} (${items.length})</div>${items.slice(0,6).map(x=>`<div class="agent-row" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}"><span class="initial ${level>=3?'outline':''}">${initials(x.agent)}</span><span class="name">${esc(x.agent)}</span><span class="team">${esc(x.team)}</span></div>`).join('')}${items.length>6?`<div class="more" data-filter-level="${level}">+ ${items.length-6} more agents</div>`:''}${!items.length?'<div class="empty-line">No agents</div>':''}</div>`}
+function levelCard(level,title,cls,items){return`<div class="level-card"><div class="level-head ${cls}">${title} (${items.length})</div>${items.slice(0,6).map(x=>`<div class="agent-row" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}"><span class="name">${esc(x.agent)}</span><span class="team">${esc(x.team)}</span></div>`).join('')}${items.length>6?`<div class="more" data-filter-level="${level}">+ ${items.length-6} more agents</div>`:''}${!items.length?'<div class="empty-line">No agents</div>':''}</div>`}
 function renderLevels(summ){const a=summ.filter(x=>x.assessed);document.getElementById('levelGrid').innerHTML=levelCard(1,'Poor','poor',a.filter(x=>x.level===1))+levelCard(2,'Weak','weak',a.filter(x=>x.level===2))+levelCard(3,'Good','good',a.filter(x=>x.level===3))+levelCard(4,'Very Good','very',a.filter(x=>x.level===4))}
 function renderInsights(week,team,summ){
   const assessed=summ.filter(x=>x.assessed),needs=assessed.filter(x=>x.level<=2).sort((a,b)=>a.score-b.score).slice(0,5),pw=prevWeek(week),prevMap=new Map((pw?agentSummaries(pw,team):[]).filter(x=>x.assessed).map(x=>[x.team+'|'+x.agent,x]));
   const moves=assessed.map(x=>{const p=prevMap.get(x.team+'|'+x.agent);return p?{...x,diff:x.score-p.score}:null}).filter(Boolean);const improved=moves.filter(x=>x.diff>0).sort((a,b)=>b.diff-a.diff).slice(0,5),declining=moves.filter(x=>x.diff<0).sort((a,b)=>a.diff-b.diff).slice(0,5),missing=summ.filter(x=>!x.assessed).slice(0,5);
   const rows=(items,type)=>items.length?items.map(x=>`<div class="insight-row" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}"><span>${esc(x.agent)}</span><b>${type==='miss'?'Not assessed':type==='move'?(x.diff>0?'+':'')+x.diff+' pts':x.score+'%'}</b></div>`).join(''):'<div class="empty-line">None</div>';
-  document.getElementById('insightGrid').innerHTML=`<div class="insight-card"><div class="insight-head att"><span class="ih-icon">⚠</span>Needs Attention<span class="view" data-insight="att">View All →</span></div>${rows(needs,'score')}</div><div class="insight-card"><div class="insight-head imp"><span class="ih-icon">↑</span>Most Improved<span class="view">View All →</span></div>${rows(improved,'move')}</div><div class="insight-card"><div class="insight-head dec"><span class="ih-icon">↓</span>Declining<span class="view">View All →</span></div>${rows(declining,'move')}</div><div class="insight-card"><div class="insight-head recent"><span class="ih-icon">◷</span>No Recent Assessment<span class="view">View All →</span></div>${rows(missing,'miss')}</div>`;
+  document.getElementById('insightGrid').innerHTML=`<div class="insight-card"><div class="insight-head att">Needs Attention<span class="view" data-insight="att">View all</span></div>${rows(needs,'score')}</div><div class="insight-card"><div class="insight-head imp">Most Improved<span class="view">View all</span></div>${rows(improved,'move')}</div><div class="insight-card"><div class="insight-head dec">Declining<span class="view">View all</span></div>${rows(declining,'move')}</div><div class="insight-card"><div class="insight-head recent">No Recent Assessment<span class="view">View all</span></div>${rows(missing,'miss')}</div>`;
 }
 function prepareAssessment(){const week=selectedWeek(),team=selectedTeam()==='ALL'?state.teams[0].name:selectedTeam();document.getElementById('assessWeek').value=week;document.getElementById('assessTeam').value=team;const areaSel=document.getElementById('assessArea');areaSel.value=week===PAPER_WEEK?LEGACY_AREA:AREAS[0];renderAssessmentGrid()}
 const AREA_SHORT={'Objection Handling':'Objection','Investment / ROI Knowledge':'ROI','Dubai Area & Market Knowledge':'Market','Project / Product Knowledge':'Product','Sales Presentation / Pitch':'Pitch'};
@@ -344,7 +355,7 @@ function renderAssessmentGrid(){
   }).join('');
 }
 function saveWeeklyAssessment(){const week=document.getElementById('assessWeek').value,team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value;if(!week)return alert('Select a week ending date.');if(!area)return alert('Select a knowledge area.');const rows=[...document.querySelectorAll('#weeklyGrid .assessment-person')];let saved=0;rows.forEach(row=>{const agent=row.dataset.agent,sel=row.querySelector('.level-btn.selected'),comment=row.querySelector('.comment-input').value.trim(),existing=exactRecord(week,team,agent,area);if(sel){const level=Number(sel.dataset.level);if(existing){existing.level=level;existing.comment=comment}else state.records.push({week,team,agent,area,level,comment});saved++}else if(existing){state.records=state.records.filter(r=>r!==existing)}});saveState();setupSelectors();document.getElementById('weekFilter').value=week;document.getElementById('teamFilter').value=team;renderAll();toast(`${saved} ${area} assessment${saved===1?'':'s'} saved for ${team}`);setView('dashboard')}
-function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?`${r.area}: ${r.comment}`:'—'}
+function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?`${shortArea(r.area)}: ${r.comment}`:'—'}
 function renderAgents(){const week=selectedWeek(),team=document.getElementById('agentTeamFilter').value||'ALL',lvl=document.getElementById('agentLevelFilter').value,q=(document.getElementById('agentSearch').value||'').trim().toLowerCase();let rows=agentSummaries(week,team).filter(x=>!q||x.agent.toLowerCase().includes(q));if(lvl==='NA')rows=rows.filter(x=>!x.assessed);else if(/^\d$/.test(lvl))rows=rows.filter(x=>x.assessed&&x.level===Number(lvl));else if(lvl==='REVIEW')rows=[];document.getElementById('agentsBody').innerHTML=rows.map(x=>`<tr><td><span class="agent-link" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}">${esc(x.agent)}</span></td><td>${esc(x.team)}</td><td>${x.assessed?`<span class="badge b${x.level}">${LEVELS[x.level]}</span>`:'<span class="badge b0">Not assessed</span>'}</td><td>${x.assessed?x.score+'%':'—'}</td><td>${esc(latestComment(x))}</td><td>${fmtWeek(week).replace('Week ending: ','')}</td></tr>`).join('')}
 function renderTeams(){const week=selectedWeek();document.getElementById('teamGrid').innerHTML=state.teams.map(t=>{const members=activeMembers(t.name),summ=agentSummaries(week,t.name),ass=summ.filter(x=>x.assessed),score=avgNum(ass.map(x=>x.score));return`<div class="panel team-card" data-team-card="${esc(t.name)}"><div style="font-size:10px;letter-spacing:.1em;color:#9a7862;text-transform:uppercase">${members.length} members</div><h3>${esc(t.name)}</h3><div class="tl">TL · ${esc(t.leader)}</div><div style="margin-top:14px"><span class="score-big">${ass.length?score+'%':'—'}</span><div style="font-size:11px;color:#8590a0">${ass.length} of ${members.length} assessed · ${fmtWeek(week)}</div></div><div class="team-members">${summ.map(m=>`<div class="team-person"><span>${esc(m.agent)}${m.agent===t.leader?' <small style="color:#9a7862">(TL)</small>':''}</span><span>${m.assessed?LEVELS[m.level]:'—'}</span></div>`).join('')}</div></div>`}).join('')}
 function renderReports(){const weeks=allWeeks().slice().sort().reverse();document.getElementById('weeklyReportBody').innerHTML=weeks.map(w=>{const members=activeMembers('ALL'),s=agentSummaries(w,'ALL'),a=s.filter(x=>x.assessed),c={1:0,2:0,3:0,4:0};a.forEach(x=>c[x.level]++);return`<tr><td>${fmtWeek(w).replace('Week ending: ','')}</td><td>${a.length}</td><td>${pct(a.length,members.length)}%</td><td>${avgNum(a.map(x=>x.score))}%</td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td>${c[4]}</td></tr>`}).join('');const w=selectedWeek();document.getElementById('teamReportBody').innerHTML=state.teams.map(t=>{const m=activeMembers(t.name),a=agentSummaries(w,t.name).filter(x=>x.assessed);return`<tr><td>${esc(t.name)}</td><td>${m.length}</td><td>${a.length}</td><td>${pct(a.length,m.length)}%</td><td>${a.length?avgNum(a.map(x=>x.score))+'%':'—'}</td></tr>`}).join('');const a=agentSummaries(w,'ALL').filter(x=>x.assessed),members=activeMembers('ALL');document.getElementById('reportKpis').innerHTML=`<div class="kpi"><span>Active Agents</span><strong>${members.length}</strong></div><div class="kpi"><span>Assessed</span><strong>${a.length}</strong></div><div class="kpi"><span>Coverage</span><strong>${pct(a.length,members.length)}%</strong></div><div class="kpi"><span>Knowledge Score</span><strong>${avgNum(a.map(x=>x.score))}%</strong></div>`}
@@ -381,6 +392,7 @@ var CFG_KEY  = 'kirpaSyncCfg_v1';
 var GATE_KEY = 'kirpaGate_v1';
 var GATE_DAYS = 7;
 var POLL_MS  = 20000;
+var FAST_MS  = 7000;
 
 /* ===================== passcode gate ===================== */
 var gate      = document.getElementById('gate');
@@ -443,7 +455,7 @@ var elTok    = document.getElementById('syncToken');
 
 var cfg      = loadCfg();
 var localRev = 0;
-var pushTimer = null, pollTimer = null, started = false, pushing = false;
+var pushTimer = null, pollTimer = null, started = false, pushing = false, pollEvery = 20000;
 
 function loadCfg(){
   var c = {url:DEFAULT_API_URL, token:DEFAULT_TOKEN};
@@ -463,23 +475,58 @@ function setPill(cls, text){
 }
 function setStatus(msg){ if(statusLn) statusLn.textContent = msg; }
 
-function api(payload){
-  return fetch(cfg.url, {
+var failStreak = 0, lastGoodAt = null, dirty = false;
+
+function apiOnce(payload){
+  // Apps Script answers /exec with a 302 to a one-shot googleusercontent URL.
+  // A cached redirect or an expired key shows up as a stray 404, so make every
+  // request unique and keep it out of the HTTP cache.
+  var bust = (cfg.url.indexOf('?')>=0?'&':'?') + 'cb=' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  return fetch(cfg.url + bust, {
     method: 'POST',
     // text/plain keeps this a CORS "simple request" — Apps Script cannot answer preflight
     headers: {'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify(Object.assign({token: cfg.token}, payload)),
-    redirect: 'follow'
+    redirect: 'follow',
+    cache: 'no-store'
   }).then(function(r){
-    if(!r.ok) throw new Error('HTTP '+r.status);
+    if(!r.ok){
+      var e = new Error('HTTP '+r.status);
+      e.transient = (r.status>=500 || r.status===404 || r.status===429 || r.status===0);
+      throw e;
+    }
     return r.text();
   }).then(function(t){
     var j;
     try{ j = JSON.parse(t); }
-    catch(e){ throw new Error('Unexpected reply from the web app. Re-deploy it with access set to "Anyone".'); }
+    catch(e){
+      var pe = new Error('Unexpected reply from the web app. Check it is deployed with access set to "Anyone".');
+      pe.transient = true;
+      throw pe;
+    }
     if(j.ok === false) throw new Error(j.error || 'Request rejected');
     return j;
   });
+}
+
+function api(payload, tries){
+  tries = (tries==null) ? 3 : tries;
+  return apiOnce(payload).catch(function(e){
+    var transient = e.transient || e.name === 'TypeError';   // TypeError = network blip
+    if(tries > 1 && transient){
+      return new Promise(function(r){ setTimeout(r, 1200 + Math.random()*900); })
+        .then(function(){ return api(payload, tries-1); });
+    }
+    throw e;
+  });
+}
+
+function agoText(){
+  if(!lastGoodAt) return '';
+  var s = Math.round((Date.now()-lastGoodAt)/1000);
+  if(s < 60) return 'just now';
+  var m = Math.round(s/60);
+  return m < 60 ? m+' min ago' : Math.round(m/60)+' hr ago';
 }
 
 function currentFilters(){
@@ -508,43 +555,68 @@ function applyRemote(remote, rev){
   renderAll();
 }
 
+function reportOk(rev, updatedAt){
+  failStreak = 0; lastGoodAt = Date.now();
+  setPill('ok', dirty ? 'Saving…' : 'Synced');
+  setStatus('Connected. Revision '+(rev||0)+', last change '+(updatedAt ? new Date(updatedAt).toLocaleString('en-GB') : 'n/a')+'. Checked '+agoText()+'.');
+}
+
+function reportFail(e, hard){
+  failStreak++;
+  // one blip is normal for Apps Script; don't alarm anyone until it actually persists
+  if(hard || failStreak >= 3){
+    setPill('err', dirty ? 'Not saved' : 'Sync error');
+    setStatus((dirty
+      ? 'Your work is safe in this browser but has not reached the Google Sheet yet. Retrying automatically. '
+      : 'Could not reach the Google Sheet. Retrying automatically. ')
+      + 'Last successful sync: ' + (lastGoodAt ? agoText() : 'not yet this session') + '. (' + e.message + ')');
+  }else{
+    setPill('busy', 'Retrying…');
+    setStatus('A sync attempt did not get through; retrying. Last successful sync: '+(lastGoodAt?agoText():'not yet this session')+'.');
+  }
+  retune();
+}
+
+// poll faster while we are behind, slower once healthy
+function retune(){
+  var want = (failStreak>0 || dirty) ? FAST_MS : POLL_MS;
+  if(want !== pollEvery){ pollEvery = want; startPolling(); }
+}
+
 function pull(quiet){
   if(!connected()) return Promise.resolve();
   if(!quiet) setPill('busy','Syncing…');
   return api({action:'get'}).then(function(j){
-    if(j.rev && j.rev !== localRev && j.state){
+    if(j.rev && j.rev !== localRev && j.state && !dirty){
       applyRemote(j.state, j.rev);
-      if(!quiet) toast('Pulled latest data from the Google Sheet');
-      else toast('Updated with changes from another device');
+      toast(quiet ? 'Updated with changes from another device' : 'Pulled latest data from the Google Sheet');
     }else if(j.rev){
       localRev = j.rev;
     }
-    setPill('ok','Synced');
-    setStatus('Connected. Revision '+(j.rev||0)+', last change '+(j.updatedAt ? new Date(j.updatedAt).toLocaleString('en-GB') : 'n/a')+'.');
-  }).catch(function(e){
-    setPill('err','Sync error');
-    setStatus('Could not reach the Google Sheet: '+e.message);
-  });
+    reportOk(j.rev, j.updatedAt);
+    if(dirty) push(true);
+    else retune();
+  }).catch(function(e){ reportFail(e, !quiet); });
 }
 
 function push(quiet){
   if(!connected()) return Promise.resolve();
   if(pushing) return Promise.resolve();
-  pushing = true;
+  pushing = true; dirty = true;
   setPill('busy','Saving…');
   return api({action:'put', state: state, rev: localRev}).then(function(j){
-    localRev = j.rev;
-    setPill('ok','Synced');
-    setStatus('Connected. Revision '+j.rev+', last change '+new Date(j.updatedAt).toLocaleString('en-GB')+'.');
+    localRev = j.rev; dirty = false;
+    reportOk(j.rev, j.updatedAt);
     if(!quiet) toast('Saved to the Google Sheet');
+    retune();
   }).catch(function(e){
-    setPill('err','Not saved');
-    setStatus('Saved in this browser, but the Google Sheet write failed: '+e.message);
+    reportFail(e, !quiet);
   }).then(function(){ pushing = false; });
 }
 
 function schedulePush(){
   if(!connected()) return;
+  dirty = true;
   setPill('busy','Saving…');
   clearTimeout(pushTimer);
   pushTimer = setTimeout(function(){ push(true); }, 900);
@@ -554,6 +626,11 @@ function schedulePush(){
 var _saveState = saveState;
 saveState = function(){ _saveState(); schedulePush(); };
 window.saveState = saveState;
+
+function startPolling(){
+  clearInterval(pollTimer);
+  pollTimer = setInterval(function(){ if(!document.hidden) pull(true); }, pollEvery);
+}
 
 function startSync(){
   if(started) return;
@@ -566,9 +643,9 @@ function startSync(){
     return;
   }
   pull(false);
-  clearInterval(pollTimer);
-  pollTimer = setInterval(function(){ if(!document.hidden) pull(true); }, POLL_MS);
+  startPolling();
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) pull(true); });
+  window.addEventListener('online', function(){ pull(true); });
 }
 
 /* settings buttons */

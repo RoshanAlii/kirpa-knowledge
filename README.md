@@ -44,13 +44,17 @@ Google Sheet
 
 - **Writes**: every save in the app pushes the full state, debounced ~1s. The script bumps a
   revision counter under a script lock, then rewrites the two readable tabs.
-- **Reads**: the app polls every 20s (and on tab focus). If the remote revision is newer than the
+- **Reads**: the app polls every 20s (7s while it is behind, and on tab focus or regaining network). If the remote revision is newer than the
   one it holds, it swaps in the remote state and re-renders. Last write wins.
 - **Offline**: if the sheet is unreachable, everything still works from `localStorage` and the
   status pill in the header turns red. The next successful save pushes the local state up.
 - **CORS**: requests go out as `Content-Type: text/plain` so they stay CORS-*simple* requests —
   Apps Script cannot answer a preflight `OPTIONS`, so this matters. Don't change it to
   `application/json`.
+- **Flakiness**: `/exec` replies with a 302 to a single-use `googleusercontent.com` URL. A cached or
+  expired one surfaces as a spurious 404, so every request carries a unique `?cb=` value and
+  `cache: 'no-store'`, and transient failures are retried up to 3 times before the UI says anything.
+  A failed push sets a dirty flag; the poller keeps retrying until the sheet accepts it.
 
 ## 3. One-time setup (~5 minutes)
 
@@ -123,8 +127,16 @@ The browser is serving a cached copy of `index.html`. GitHub Pages sets `Cache-C
 so it clears itself within 10 minutes. To force it now: hard refresh (Cmd/Ctrl + Shift + R), or load
 `.../kirpa-knowledge/?v=2`.
 
-**Pill says "Sync error".**
-Open Settings > Cloud Sync and read the line under the buttons — it carries the actual message.
+**Pill says "Retrying…".**
+Nothing to do. Apps Script occasionally drops a request (its `/exec` endpoint answers with a one-shot
+redirect that sometimes 404s). Each call is retried up to 3 times, and the pill only turns red after
+3 consecutive failures, so a brief "Retrying" is normal.
+
+**Pill says "Sync error" or "Not saved".**
+"Not saved" means you have local edits that haven't reached the sheet — they are safe in the browser
+and are pushed automatically as soon as the connection recovers; polling speeds up to every 7s until
+it does. Nothing is lost by closing the tab and reopening it later on the same browser. Open
+Settings > Cloud Sync for the exact message.
 - *Invalid token* → the token in `index.html` and in `Code.gs` no longer match. See section 5.
 - *Unexpected reply from the web app* → the deployment's "Who has access" is not **Anyone**.
   Fix in **Deploy > Manage deployments > edit (pencil)**.
