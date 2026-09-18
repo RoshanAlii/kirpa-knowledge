@@ -168,9 +168,26 @@ with people who need to read the raw data.
 per-row writes instead of whole-state pushes, and a private host. Supabase or a small Next.js app
 on Vercel does all three.
 
-## 8. Files
+## 8. Regression suite
+
+`qa-suite.mjs` is a Playwright suite covering 81 checks across the passcode gate, dashboard maths,
+the assessment save/edit/delete cycle, the previous-level marker, filters, roster admin,
+backup/restore, HTML escaping, and cloud sync (including injected 404s and a simulated outage). It
+runs against a local copy of `index.html` with a mock Apps Script backend, so it touches nothing
+live.
+
+```bash
+npm i playwright && npx playwright install chromium
+node qa-suite.mjs
+```
+
+It asserts figures against an independent recompute from raw state rather than against the UI's own
+numbers, so a maths regression fails the suite rather than agreeing with itself.
+
+## 9. Files
 
 | File | Purpose |
 |---|---|
 | `index.html` | The entire app — HTML, CSS, JS, data, sync layer, passcode gate |
 | `Code.gs` | Google Apps Script backend |
+| `qa-suite.mjs` | Playwright regression suite (81 checks) |
