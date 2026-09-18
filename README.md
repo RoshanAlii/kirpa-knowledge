@@ -111,6 +111,32 @@ bump, not security.
 - **Settings → Export Backup** downloads the full JSON state. Do this at the end of the pilot week.
 - The Google Sheet itself is a backup — `File → Version history` gives you every revision.
 
+## 6b. Troubleshooting
+
+**Header pill says "Local only" but the URL is baked in.**
+The browser is serving a cached copy of `index.html`. GitHub Pages sets `Cache-Control: max-age=600`,
+so it clears itself within 10 minutes. To force it now: hard refresh (Cmd/Ctrl + Shift + R), or load
+`.../kirpa-knowledge/?v=2`.
+
+**Pill says "Sync error".**
+Open Settings > Cloud Sync and read the line under the buttons — it carries the actual message.
+- *Invalid token* → the token in `index.html` and in `Code.gs` no longer match. See section 5.
+- *Unexpected reply from the web app* → the deployment's "Who has access" is not **Anyone**.
+  Fix in **Deploy > Manage deployments > edit (pencil)**.
+- Anything network-shaped → the script may be mid-redeploy. Wait a minute, click **Pull from Sheet**.
+
+**Someone clicked Disconnect and now their browser won't reconnect.**
+Disconnect stores an explicit empty URL, which overrides the baked-in one. Paste the `/exec` URL back
+into Settings and click **Connect & Sync**.
+
+**Two leaders edited the same team at the same time.**
+Last write wins — the later save overwrites. The Google Sheet's **File > Version history** has the
+earlier state if you need to recover it.
+
+**Do team leaders need access to the Google Sheet?**
+No. The web app runs as Ali's account ("Execute as: Me"), so the sheet stays private. Only share it
+with people who need to read the raw data.
+
 ## 7. Known limits of this pilot
 
 | Limit | Detail |
