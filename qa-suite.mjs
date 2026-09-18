@@ -11,6 +11,13 @@ const api=http.createServer((q,s)=>{let b='';q.on('data',c=>b+=c);q.on('end',()=
   if(j.token!=='kirpa_aa7abca846471b077fa6671cbf6943f4'){s.writeHead(200,h);return s.end(JSON.stringify({ok:false,error:'Invalid token'}))}
   if(j.action==='get'){s.writeHead(200,h);return s.end(JSON.stringify({ok:true,...store}))}
   if(j.action==='put'){store={rev:store.rev+1,state:j.state,updatedAt:new Date().toISOString()};s.writeHead(200,h);return s.end(JSON.stringify({ok:true,rev:store.rev,updatedAt:store.updatedAt}))}
+  if(j.action==='patch'){
+    if(!store.state){s.writeHead(200,h);return s.end(JSON.stringify({ok:false,error:'Nothing stored yet - push a full copy first'}))}
+    const st=store.state;
+    (j.scopes||[]).forEach(sc=>{st.records=st.records.filter(r=>!(r.week===sc.week&&r.team===sc.team&&(r.area||'')===sc.area));(sc.records||[]).forEach(r=>st.records.push(r));});
+    if(j.roster){if(j.roster.teams)st.teams=j.roster.teams;if(j.roster.inactive)st.inactive=j.roster.inactive;}
+    store={rev:store.rev+1,state:st,updatedAt:new Date().toISOString()};
+    s.writeHead(200,h);return s.end(JSON.stringify({ok:true,rev:store.rev,updatedAt:store.updatedAt}))}
   s.writeHead(200,h);s.end(JSON.stringify({ok:true,time:'x'}))})});
 await new Promise(r=>api.listen(8900,r));
 
@@ -302,6 +309,8 @@ G('10. Cloud sync');
   store={rev:0,state:null,updatedAt:null};
   const {ctx,p}=await fresh({sync:true});
   check('connects on load with the baked-in URL', (await p.textContent('#syncPillText'))==='Synced');
+  await nav(p,'settings'); await p.click('#syncPushBtn'); await p.waitForTimeout(2200);
+  check('first "Push to Sheet" seeds the sheet', store.rev>0 && store.state.records.length===18, 'rev='+store.rev);
   await nav(p,'assess');
   await p.fill('#assessWeek','2026-09-18'); await p.selectOption('#assessTeam','Team Kamal'); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(250);
   await p.$eval('#weeklyGrid [data-agent="Sarv"] .level-btn[data-level="4"]',e=>e.click());

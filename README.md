@@ -42,8 +42,14 @@ Google Sheet
    └── Roster        one row per agent                               ← readable
 ```
 
-- **Writes**: every save in the app pushes the full state, debounced ~1s. The script bumps a
-  revision counter under a script lock, then rewrites the two readable tabs.
+- **Writes**: a weekly save sends only the scope it touched - one (week, team, knowledge area) -
+  as a `patch`, debounced ~1s. The script merges that scope into the stored state under a script
+  lock, bumps the revision counter, then rewrites the two readable tabs. This is what lets six team
+  leaders save at the same moment without overwriting each other; sending the whole dataset (the
+  obvious design) silently loses whichever save lands first. Roster edits send a `roster` patch;
+  Import Backup and Reset send a deliberate full `put`.
+- **Outbox**: queued operations are persisted to `localStorage`, so closing the tab mid-outage does
+  not lose them - they are sent on next load.
 - **Reads**: the app polls every 20s (7s while it is behind, and on tab focus or regaining network). If the remote revision is newer than the
   one it holds, it swaps in the remote state and re-renders. Last write wins.
 - **Offline**: if the sheet is unreachable, everything still works from `localStorage` and the
@@ -160,7 +166,7 @@ with people who need to read the raw data.
 |---|---|
 | Passcode is client-side | Anyone who views source can read the hash and the token. |
 | No user accounts | No per-leader logins, no audit trail of who changed what. |
-| Last write wins | Two leaders saving the same team within the same second: one overwrites the other. Assign one team per leader and it won't come up. |
+| Last write wins *within one scope* | Two leaders scoring the **same agent, same area, same week** in the same second: one value wins. Different teams or different areas now merge correctly. |
 | Apps Script quotas | ~20k URL-fetch/executions per day on a consumer account. Nowhere near it at this scale. |
 | Data lives in your Google account | Fine for a pilot, but agent performance data on a public URL is the thing to fix in the permanent build. |
 
@@ -170,7 +176,7 @@ on Vercel does all three.
 
 ## 8. Regression suite
 
-`qa-suite.mjs` is a Playwright suite covering 81 checks across the passcode gate, dashboard maths,
+`qa-suite.mjs` is a Playwright suite covering 82 checks across the passcode gate, dashboard maths,
 the assessment save/edit/delete cycle, the previous-level marker, filters, roster admin,
 backup/restore, HTML escaping, and cloud sync (including injected 404s and a simulated outage). It
 runs against a local copy of `index.html` with a mock Apps Script backend, so it touches nothing
@@ -179,6 +185,7 @@ live.
 ```bash
 npm i playwright && npx playwright install chromium
 node qa-suite.mjs
+node qa-concurrency.mjs   # two leaders saving at the same moment
 ```
 
 It asserts figures against an independent recompute from raw state rather than against the UI's own
@@ -190,4 +197,5 @@ numbers, so a maths regression fails the suite rather than agreeing with itself.
 |---|---|
 | `index.html` | The entire app — HTML, CSS, JS, data, sync layer, passcode gate |
 | `Code.gs` | Google Apps Script backend |
-| `qa-suite.mjs` | Playwright regression suite (81 checks) |
+| `qa-suite.mjs` | Playwright regression suite (82 checks) |
+| `qa-concurrency.mjs` | Two-leader simultaneous-save test |

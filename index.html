@@ -176,7 +176,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.6 · Area Assessments</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.7 · Area Assessments</div>
   </div>
 </aside>
 <main class="main">
@@ -622,44 +622,125 @@ function pull(quiet){
   if(!connected()) return Promise.resolve();
   if(!quiet) setPill('busy','Syncing…');
   return api({action:'get'}).then(function(j){
-    if(j.rev && j.rev !== localRev && j.state && !dirty){
+    if(j.rev && j.rev !== localRev && j.state && !pending()){
       applyRemote(j.state, j.rev);
       toast(quiet ? 'Updated with changes from another device' : 'Pulled latest data from the Google Sheet');
     }else if(j.rev){
       localRev = j.rev;
     }
     reportOk(j.rev, j.updatedAt);
-    if(dirty) push(true);
+    if(pending()) flush(true);
     else retune();
   }).catch(function(e){ reportFail(e, !quiet); });
 }
 
-function push(quiet){
-  if(!connected()) return Promise.resolve();
-  if(pushing) return Promise.resolve();
-  pushing = true; dirty = true;
-  setPill('busy','Saving…');
-  return api({action:'put', state: state, rev: localRev}).then(function(j){
-    localRev = j.rev; dirty = false;
-    reportOk(j.rev, j.updatedAt);
-    if(!quiet) toast('Saved to the Google Sheet');
-    retune();
-  }).catch(function(e){
-    reportFail(e, !quiet);
-  }).then(function(){ pushing = false; });
+// ---- outgoing operation queue -------------------------------------------
+// Each weekly save touches exactly one (week, team, area). Sending that scope
+// instead of the whole dataset means two leaders saving different teams at the
+// same moment no longer overwrite each other.
+var OPS_KEY='kirpaSyncOps_v1';
+var ops=loadOps();
+function loadOps(){ try{ var v=JSON.parse(localStorage.getItem(OPS_KEY)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+function saveOps(){ try{ localStorage.setItem(OPS_KEY, JSON.stringify(ops)); }catch(e){} }
+function pending(){ return ops.length>0; }
+
+function enqueue(op){
+  if(op.t==='replace'){ ops=[op]; }
+  else if(op.t==='scope'){
+    ops=ops.filter(function(o){ return !(o.t==='scope'&&o.week===op.week&&o.team===op.team&&o.area===op.area); });
+    ops.push(op);
+  }else{
+    ops=ops.filter(function(o){ return o.t!=='roster'; });
+    ops.push(op);
+  }
+  saveOps();
 }
+
+function scopeRecords(week,team,area){
+  return state.records.filter(function(r){ return r.week===week&&r.team===team&&(r.area||'')===area; });
+}
+
+function flush(quiet){
+  if(!connected()||!ops.length) return Promise.resolve();
+  if(pushing) return Promise.resolve();
+  pushing=true; dirty=true;
+  var batch=ops.slice(), payload;
+
+  if(batch.some(function(o){return o.t==='replace';})){
+    payload={action:'put', state:state};
+  }else{
+    payload={action:'patch',
+      scopes:batch.filter(function(o){return o.t==='scope';}).map(function(o){
+        return {week:o.week, team:o.team, area:o.area, records:scopeRecords(o.week,o.team,o.area)}; })};
+    if(batch.some(function(o){return o.t==='roster';})){
+      payload.roster={teams:state.teams, inactive:state.inactive};
+    }
+  }
+
+  setPill('busy','Saving\u2026');
+  return api(payload).then(function(j){
+    ops=ops.slice(batch.length); saveOps();
+    dirty=pending();
+    localRev=j.rev;
+    reportOk(j.rev,j.updatedAt);
+    if(!quiet) toast('Saved to the Google Sheet');
+    pushing=false;
+    return pull(true);          // converge with whatever others changed
+  }).catch(function(e){
+    pushing=false;
+    // a patch against an empty sheet needs a full copy first
+    if(/Nothing stored yet/i.test(e.message||'')){ enqueue({t:'replace'}); }
+    reportFail(e, !quiet);
+  });
+}
+
+// kept for the Settings button: an explicit, deliberate full overwrite
+function push(quiet){ enqueue({t:'replace'}); return flush(quiet); }
 
 function schedulePush(){
   if(!connected()) return;
-  dirty = true;
-  setPill('busy','Saving…');
+  dirty=true;
+  setPill('busy','Saving\u2026');
   clearTimeout(pushTimer);
-  pushTimer = setTimeout(function(){ push(true); }, 900);
+  pushTimer=setTimeout(function(){ flush(true); }, 900);
 }
 
-/* wrap the app's saveState so every change reaches the sheet */
+/* Classify the change before it is sent.
+   A weekly assessment is a scoped patch; import/reset are deliberate full
+   overwrites; anything else (roster edits) replaces just the roster. */
+var pendingScope=null, replaceNext=false;
+
+// Capture phase on document: these run BEFORE the app's own click handlers.
+// (Wrapping the functions themselves does not work - addEventListener already
+//  holds a reference to the original, so reassigning the global has no effect.)
+document.addEventListener('click', function(e){
+  var t = e.target && e.target.closest ? e.target : null;
+  if(!t) return;
+  if(t.closest('#saveWeekBtn')){
+    pendingScope = {
+      week: document.getElementById('assessWeek').value,
+      team: document.getElementById('assessTeam').value,
+      area: document.getElementById('assessArea').value
+    };
+    setTimeout(function(){ pendingScope=null; }, 0);
+  }
+  if(t.closest('#resetDataBtn')) replaceNext=true;
+}, true);
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='importJsonInput') replaceNext=true;
+}, true);
+
 var _saveState = saveState;
-saveState = function(){ _saveState(); schedulePush(); };
+saveState = function(){
+  _saveState();
+  if(replaceNext){ replaceNext=false; enqueue({t:'replace'}); }
+  else if(pendingScope && pendingScope.week && pendingScope.team && pendingScope.area){
+    enqueue({t:'scope', week:pendingScope.week, team:pendingScope.team, area:pendingScope.area});
+  }else{
+    enqueue({t:'roster'});
+  }
+  schedulePush();
+};
 window.saveState = saveState;
 
 function startPolling(){
@@ -677,7 +758,7 @@ function startSync(){
     setStatus('Not connected. Paste the Apps Script web app URL above to share data across devices.');
     return;
   }
-  pull(false);
+  pull(false).then(function(){ if(pending()) flush(true); });
   startPolling();
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) pull(true); });
   window.addEventListener('online', function(){ pull(true); });
@@ -713,12 +794,16 @@ initGate();
 
 /* flush a pending push if the tab is closed mid-edit */
 window.addEventListener('beforeunload', function(){
-  if(connected() && pushTimer){
+  if(connected() && ops.length){
     clearTimeout(pushTimer);
     try{
-      navigator.sendBeacon(cfg.url, new Blob(
-        [JSON.stringify({token:cfg.token, action:'put', state:state, rev:localRev})],
-        {type:'text/plain;charset=utf-8'}));
+      var sc=ops.filter(function(o){return o.t==='scope';}).map(function(o){
+        return {week:o.week,team:o.team,area:o.area,records:scopeRecords(o.week,o.team,o.area)};});
+      var body=ops.some(function(o){return o.t==='replace';})
+        ? {token:cfg.token, action:'put', state:state}
+        : {token:cfg.token, action:'patch', scopes:sc,
+           roster:ops.some(function(o){return o.t==='roster';})?{teams:state.teams,inactive:state.inactive}:undefined};
+      navigator.sendBeacon(cfg.url, new Blob([JSON.stringify(body)],{type:'text/plain;charset=utf-8'}));
     }catch(e){}
   }
 });

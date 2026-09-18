@@ -37,7 +37,8 @@ function route(e, body) {
   try {
     if (action === 'ping') return json({ ok: true, time: new Date().toISOString() });
     if (action === 'get')  return json(readState());
-    if (action === 'put')  return json(writeState(body.state));
+    if (action === 'put')   return json(writeState(body.state));
+    if (action === 'patch') return json(patchState(body));
     return json({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
     return json({ ok: false, error: String(err && err.message || err) });
@@ -89,25 +90,64 @@ function writeState(st) {
   var lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
-    var sh   = tab(STATE_TAB);
-    var meta = {};
-    try { meta = JSON.parse(sh.getRange('A1').getValue() || '{}'); } catch (e) {}
+    return commit(st);
+  } finally {
+    lock.releaseLock();
+  }
+}
 
-    var rev  = (meta.rev || 0) + 1;
-    var now  = new Date().toISOString();
-    var raw  = JSON.stringify(st);
+/** Writes the state and refreshes the readable tabs. Callers hold the lock. */
+function commit(st) {
+  var sh   = tab(STATE_TAB);
+  var meta = {};
+  try { meta = JSON.parse(sh.getRange('A1').getValue() || '{}'); } catch (e) {}
 
-    var parts = [];
-    for (var i = 0; i < raw.length; i += CHUNK) parts.push([raw.substr(i, CHUNK)]);
-    if (!parts.length) parts.push(['']);
+  var rev  = (meta.rev || 0) + 1;
+  var now  = new Date().toISOString();
+  var raw  = JSON.stringify(st);
 
-    var oldRows = Math.max(meta.chunks || 0, 1);
-    sh.getRange(2, 1, Math.max(oldRows, parts.length) + 5, 1).clearContent();
-    sh.getRange(2, 1, parts.length, 1).setValues(parts);
-    sh.getRange('A1').setValue(JSON.stringify({ rev: rev, updatedAt: now, chunks: parts.length }));
+  var parts = [];
+  for (var i = 0; i < raw.length; i += CHUNK) parts.push([raw.substr(i, CHUNK)]);
+  if (!parts.length) parts.push(['']);
 
-    mirror(st, now);
-    return { ok: true, rev: rev, updatedAt: now };
+  var oldRows = Math.max(meta.chunks || 0, 1);
+  sh.getRange(2, 1, Math.max(oldRows, parts.length) + 5, 1).clearContent();
+  sh.getRange(2, 1, parts.length, 1).setValues(parts);
+  sh.getRange('A1').setValue(JSON.stringify({ rev: rev, updatedAt: now, chunks: parts.length }));
+
+  mirror(st, now);
+  return { ok: true, rev: rev, updatedAt: now };
+}
+
+/* ------------------------------ patch ------------------------------- */
+/**
+ * Merge a scoped change into the stored state instead of replacing it.
+ * A weekly assessment only ever touches one (week, team, knowledge area),
+ * so two team leaders saving different teams at the same moment compose
+ * correctly instead of overwriting each other.
+ */
+function patchState(body) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    var cur = readState();
+    var st  = cur.state;
+    if (!st) throw new Error('Nothing stored yet - push a full copy first');
+    st.records = st.records || [];
+
+    (body.scopes || []).forEach(function (sc) {
+      st.records = st.records.filter(function (r) {
+        return !(r.week === sc.week && r.team === sc.team && (r.area || '') === sc.area);
+      });
+      (sc.records || []).forEach(function (r) { st.records.push(r); });
+    });
+
+    if (body.roster) {
+      if (body.roster.teams)    st.teams    = body.roster.teams;
+      if (body.roster.inactive) st.inactive = body.roster.inactive;
+    }
+
+    return commit(st);
   } finally {
     lock.releaseLock();
   }
