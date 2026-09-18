@@ -136,6 +136,22 @@ function patchState(body) {
     st.records = st.records || [];
 
     (body.scopes || []).forEach(function (sc) {
+      // Only the agents the caller actually changed are replaced. Anyone the
+      // caller did not touch keeps whatever is already stored - so a browser
+      // holding a stale copy can no longer delete another leader's entries.
+      if (sc.upserts || sc.deletes) {
+        var touched = {};
+        (sc.upserts || []).forEach(function (r) { touched[r.agent] = 1; });
+        (sc.deletes || []).forEach(function (a) { touched[a] = 1; });
+        st.records = st.records.filter(function (r) {
+          return !(r.week === sc.week && r.team === sc.team &&
+                   (r.area || '') === sc.area && touched[r.agent]);
+        });
+        (sc.upserts || []).forEach(function (r) { st.records.push(r); });
+        return;
+      }
+      // legacy whole-slice replace, kept so a browser still running a cached
+      // older build behaves exactly as it did before
       st.records = st.records.filter(function (r) {
         return !(r.week === sc.week && r.team === sc.team && (r.area || '') === sc.area);
       });

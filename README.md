@@ -24,6 +24,9 @@ Hosted on GitHub Pages; shared data lives in a Google Sheet via a small Apps Scr
   moment of scoring. It prefers the same knowledge area; if the agent has no history in that area it
   falls back to their most recent record in any area and names it, e.g. `Last time · 11 Sep (Paper)`.
   Agents with no history at all read "No earlier record".
+- Partial saves: score only the agents who are present; the rest keep whatever was saved before.
+  Click a selected level again to clear that agent. **Reset Form** discards unsaved edits and
+  reloads what is stored - it does not wipe earlier scores.
 - Agent drill-down with full assessment history and coaching comments
 - Team view, weekly + team reports, CSV export, print
 
@@ -42,8 +45,10 @@ Google Sheet
    └── Roster        one row per agent                               ← readable
 ```
 
-- **Writes**: a weekly save sends only the scope it touched - one (week, team, knowledge area) -
-  as a `patch`, debounced ~1s. The script merges that scope into the stored state under a script
+- **Writes**: a weekly save sends only the **agents it actually changed** - as upserts plus an
+  explicit delete list, scoped to one (week, team, knowledge area) - in a `patch`, debounced ~1s.
+  Agents the form did not touch are never included, so neither a partial save nor a browser holding
+  a stale copy can remove someone else's entries. The script merges that scope into the stored state under a script
   lock, bumps the revision counter, then rewrites the two readable tabs. This is what lets six team
   leaders save at the same moment without overwriting each other; sending the whole dataset (the
   obvious design) silently loses whichever save lands first. Roster edits send a `roster` patch;
@@ -166,7 +171,8 @@ with people who need to read the raw data.
 |---|---|
 | Passcode is client-side | Anyone who views source can read the hash and the token. |
 | No user accounts | No per-leader logins, no audit trail of who changed what. |
-| Last write wins *within one scope* | Two leaders scoring the **same agent, same area, same week** in the same second: one value wins. Different teams or different areas now merge correctly. |
+| Last write wins *per agent* | Two leaders scoring the **same agent, same area, same week** in the same second: one value wins. Everything else merges. |
+| No audit trail | The sheet records the current value, not who set it or when. Google Sheets version history is the fallback. |
 | Apps Script quotas | ~20k URL-fetch/executions per day on a consumer account. Nowhere near it at this scale. |
 | Data lives in your Google account | Fine for a pilot, but agent performance data on a public URL is the thing to fix in the permanent build. |
 

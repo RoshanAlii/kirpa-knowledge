@@ -12,6 +12,9 @@ const api=http.createServer((q,s)=>{let b='';q.on('data',c=>b+=c);q.on('end',()=
     if(!store.state){s.writeHead(200,h);return s.end(JSON.stringify({ok:false,error:'Nothing stored yet - push a full copy first'}))}
     const st=store.state;
     (j.scopes||[]).forEach(sc=>{
+      if(sc.upserts||sc.deletes){const touched={};(sc.upserts||[]).forEach(r=>touched[r.agent]=1);(sc.deletes||[]).forEach(a=>touched[a]=1);
+        st.records=st.records.filter(r=>!(r.week===sc.week&&r.team===sc.team&&(r.area||'')===sc.area&&touched[r.agent]));
+        (sc.upserts||[]).forEach(r=>st.records.push(r));return;}
       st.records=st.records.filter(r=>!(r.week===sc.week&&r.team===sc.team&&(r.area||'')===sc.area));
       (sc.records||[]).forEach(r=>st.records.push(r));});
     if(j.roster){ if(j.roster.teams)st.teams=j.roster.teams; if(j.roster.inactive)st.inactive=j.roster.inactive; }

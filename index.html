@@ -176,7 +176,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.7 · Area Assessments</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v1.8 · Area Assessments</div>
   </div>
 </aside>
 <main class="main">
@@ -212,7 +212,7 @@ html,body{max-width:100%;overflow-x:hidden}
 
 <section id="view-assess" class="view">
   <div class="page-head"><div><h2>Weekly Assessment</h2><p>Select the knowledge area first, then assess the whole team on that specific area.</p></div><div class="toolbar"><button class="btn btn-secondary" id="assessBack">Back to Dashboard</button><button class="btn btn-primary" id="saveWeekBtn">Save Weekly Assessment</button></div></div>
-  <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><button class="btn btn-outline" id="clearTeamForm">Clear Form</button></div><div class="notice form-note">Choose one level per agent for the selected knowledge area. The button with a <span class="legend-dash"></span> dashed border is where that agent stood last time — so you can see movement as you score.</div></div>
+  <div class="panel"><div class="form-row"><label>Week ending<br><input id="assessWeek" class="field" type="date"></label><label>Team<br><select id="assessTeam" class="field"></select></label><label>Knowledge area<br><select id="assessArea" class="field"></select></label><button class="btn btn-outline" id="clearTeamForm" title="Discard unsaved edits and reload what is already saved">Reset Form</button></div><div class="notice form-note">Choose one level per agent for the selected knowledge area. The button with a <span class="legend-dash"></span> dashed border is where that agent stood last time — so you can see movement as you score. Click a selected level again to clear it. Agents you do not touch keep whatever was saved before.</div></div>
   <div class="panel"><div id="weeklyGrid" class="weekly-grid"></div></div>
 </section>
 
@@ -647,7 +647,17 @@ function pending(){ return ops.length>0; }
 function enqueue(op){
   if(op.t==='replace'){ ops=[op]; }
   else if(op.t==='scope'){
-    ops=ops.filter(function(o){ return !(o.t==='scope'&&o.week===op.week&&o.team===op.team&&o.area===op.area); });
+    var prior=null;
+    ops=ops.filter(function(o){
+      if(o.t==='scope'&&o.week===op.week&&o.team===op.team&&o.area===op.area){ prior=o; return false; }
+      return true;
+    });
+    if(prior){   // fold an unsent op for the same scope into this one
+      var laterSet={}, laterClear={};
+      op.set.forEach(function(a){laterSet[a]=1}); op.cleared.forEach(function(a){laterClear[a]=1});
+      prior.set.forEach(function(a){ if(!laterSet[a]&&!laterClear[a]) op.set.push(a); });
+      prior.cleared.forEach(function(a){ if(!laterSet[a]&&!laterClear[a]) op.cleared.push(a); });
+    }
     ops.push(op);
   }else{
     ops=ops.filter(function(o){ return o.t!=='roster'; });
@@ -656,8 +666,16 @@ function enqueue(op){
   saveOps();
 }
 
-function scopeRecords(week,team,area){
-  return state.records.filter(function(r){ return r.week===week&&r.team===team&&(r.area||'')===area; });
+// only the agents this browser actually changed - never the whole slice,
+// so a stale copy can no longer delete someone else's entries
+function scopePayload(o){
+  var ups=[];
+  o.set.forEach(function(agent){
+    var rec=state.records.filter(function(r){
+      return r.week===o.week&&r.team===o.team&&(r.area||'')===o.area&&r.agent===agent; })[0];
+    if(rec) ups.push(rec);
+  });
+  return {week:o.week, team:o.team, area:o.area, upserts:ups, deletes:o.cleared.slice()};
 }
 
 function flush(quiet){
@@ -670,8 +688,7 @@ function flush(quiet){
     payload={action:'put', state:state};
   }else{
     payload={action:'patch',
-      scopes:batch.filter(function(o){return o.t==='scope';}).map(function(o){
-        return {week:o.week, team:o.team, area:o.area, records:scopeRecords(o.week,o.team,o.area)}; })};
+      scopes:batch.filter(function(o){return o.t==='scope';}).map(scopePayload)};
     if(batch.some(function(o){return o.t==='roster';})){
       payload.roster={teams:state.teams, inactive:state.inactive};
     }
@@ -716,16 +733,96 @@ var pendingScope=null, replaceNext=false;
 document.addEventListener('click', function(e){
   var t = e.target && e.target.closest ? e.target : null;
   if(!t) return;
-  if(t.closest('#saveWeekBtn')){
-    pendingScope = {
-      week: document.getElementById('assessWeek').value,
-      team: document.getElementById('assessTeam').value,
-      area: document.getElementById('assessArea').value
-    };
-    setTimeout(function(){ pendingScope=null; }, 0);
+
+  // a level button toggles: clicking the selected one again clears that agent
+  var btn = t.closest('#weeklyGrid .level-btn');
+  if(btn){
+    e.stopPropagation(); e.preventDefault();
+    var was = btn.classList.contains('selected');
+    btn.closest('.level-buttons').querySelectorAll('.level-btn')
+       .forEach(function(x){ x.classList.remove('selected'); });
+    if(!was) btn.classList.add('selected');
+    var row = btn.closest('.assessment-person');
+    if(row) row.dataset.touched='1';
+    return;
   }
+
+  // Reset Form reloads what is saved; it no longer wipes previous scores
+  if(t.closest('#clearTeamForm')){
+    e.stopPropagation(); e.preventDefault();
+    renderAssessmentGrid();
+    toast('Unsaved changes discarded');
+    return;
+  }
+
+  // our own save, with merge-by-agent semantics
+  if(t.closest('#saveWeekBtn')){
+    e.stopPropagation(); e.preventDefault();
+    saveAssessmentMerging();
+    return;
+  }
+
   if(t.closest('#resetDataBtn')) replaceNext=true;
 }, true);
+
+document.addEventListener('input', function(e){
+  var c = e.target && e.target.closest ? e.target.closest('#weeklyGrid .comment-input') : null;
+  if(c){ var row=c.closest('.assessment-person'); if(row) row.dataset.touched='1'; }
+}, true);
+
+/* Save only what this form actually touched.
+   - a level selected        -> create or update that agent's record
+   - a level toggled off     -> delete that agent's record
+   - an agent left untouched -> leave whatever is stored alone
+   The old behaviour replaced the whole week+team+area slice, so saving two
+   agents deleted the three saved earlier. */
+function saveAssessmentMerging(){
+  var week=document.getElementById('assessWeek').value,
+      team=document.getElementById('assessTeam').value,
+      area=document.getElementById('assessArea').value;
+  if(!week) return alert('Select a week ending date.');
+  if(!area) return alert('Select a knowledge area.');
+
+  var rows=[].slice.call(document.querySelectorAll('#weeklyGrid .assessment-person'));
+  var setAgents=[], clearedAgents=[], kept=0;
+
+  rows.forEach(function(row){
+    var agent=row.dataset.agent,
+        sel=row.querySelector('.level-btn.selected'),
+        ci=row.querySelector('.comment-input'),
+        comment=ci?(ci.value||'').trim():'',
+        existing=exactRecord(week,team,agent,area),
+        touched=row.dataset.touched==='1';
+
+    if(sel){
+      var level=Number(sel.dataset.level);
+      if(existing){ existing.level=level; existing.comment=comment; }
+      else state.records.push({week:week,team:team,agent:agent,area:area,level:level,comment:comment});
+      setAgents.push(agent);
+    }else if(touched){
+      if(existing) state.records=state.records.filter(function(r){ return r!==existing; });
+      clearedAgents.push(agent);
+    }else if(existing){
+      kept++;                       // untouched and already scored - left alone
+    }
+  });
+
+  pendingScope={week:week, team:team, area:area, set:setAgents, cleared:clearedAgents};
+  try{ saveState(); } finally { pendingScope=null; }
+
+  setupSelectors();
+  document.getElementById('weekFilter').value=week;
+  document.getElementById('teamFilter').value=team;
+  renderAll();
+
+  var bits=[];
+  if(setAgents.length) bits.push(setAgents.length+' saved');
+  if(clearedAgents.length) bits.push(clearedAgents.length+' cleared');
+  if(kept) bits.push(kept+' left as they were');
+  toast((bits.length?bits.join(' \u00b7 '):'No changes')+' \u2014 '+area+', '+team);
+  setView('dashboard');
+}
+window.saveAssessmentMerging=saveAssessmentMerging;
 document.addEventListener('change', function(e){
   if(e.target && e.target.id==='importJsonInput') replaceNext=true;
 }, true);
@@ -735,7 +832,8 @@ saveState = function(){
   _saveState();
   if(replaceNext){ replaceNext=false; enqueue({t:'replace'}); }
   else if(pendingScope && pendingScope.week && pendingScope.team && pendingScope.area){
-    enqueue({t:'scope', week:pendingScope.week, team:pendingScope.team, area:pendingScope.area});
+    enqueue({t:'scope', week:pendingScope.week, team:pendingScope.team, area:pendingScope.area,
+             set:(pendingScope.set||[]).slice(), cleared:(pendingScope.cleared||[]).slice()});
   }else{
     enqueue({t:'roster'});
   }
@@ -797,8 +895,7 @@ window.addEventListener('beforeunload', function(){
   if(connected() && ops.length){
     clearTimeout(pushTimer);
     try{
-      var sc=ops.filter(function(o){return o.t==='scope';}).map(function(o){
-        return {week:o.week,team:o.team,area:o.area,records:scopeRecords(o.week,o.team,o.area)};});
+      var sc=ops.filter(function(o){return o.t==='scope';}).map(scopePayload);
       var body=ops.some(function(o){return o.t==='replace';})
         ? {token:cfg.token, action:'put', state:state}
         : {token:cfg.token, action:'patch', scopes:sc,

@@ -14,7 +14,11 @@ const api=http.createServer((q,s)=>{let b='';q.on('data',c=>b+=c);q.on('end',()=
   if(j.action==='patch'){
     if(!store.state){s.writeHead(200,h);return s.end(JSON.stringify({ok:false,error:'Nothing stored yet - push a full copy first'}))}
     const st=store.state;
-    (j.scopes||[]).forEach(sc=>{st.records=st.records.filter(r=>!(r.week===sc.week&&r.team===sc.team&&(r.area||'')===sc.area));(sc.records||[]).forEach(r=>st.records.push(r));});
+    (j.scopes||[]).forEach(sc=>{
+      if(sc.upserts||sc.deletes){const touched={};(sc.upserts||[]).forEach(r=>touched[r.agent]=1);(sc.deletes||[]).forEach(a=>touched[a]=1);
+        st.records=st.records.filter(r=>!(r.week===sc.week&&r.team===sc.team&&(r.area||'')===sc.area&&touched[r.agent]));
+        (sc.upserts||[]).forEach(r=>st.records.push(r));return;}
+      st.records=st.records.filter(r=>!(r.week===sc.week&&r.team===sc.team&&(r.area||'')===sc.area));(sc.records||[]).forEach(r=>st.records.push(r));});
     if(j.roster){if(j.roster.teams)st.teams=j.roster.teams;if(j.roster.inactive)st.inactive=j.roster.inactive;}
     store={rev:store.rev+1,state:st,updatedAt:new Date().toISOString()};
     s.writeHead(200,h);return s.end(JSON.stringify({ok:true,rev:store.rev,updatedAt:store.updatedAt}))}
@@ -130,10 +134,10 @@ G('3. Assess — save / edit / delete');
   // deselect removes
   await nav(p,'assess');
   await p.fill('#assessWeek','2026-09-18'); await p.selectOption('#assessTeam','Team Lipika'); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(250);
-  await p.$eval('#weeklyGrid [data-agent="Kirti"] .level-btn.selected',e=>e.classList.remove('selected'));
+  await p.$eval('#weeklyGrid [data-agent="Kirti"] .level-btn.selected',e=>e.click());
   await p.click('#saveWeekBtn'); await p.waitForTimeout(400);
   recs=await p.evaluate(()=>state.records.filter(r=>r.week==='2026-09-18'));
-  check('clearing a selection deletes that record', recs.length===1 && !recs.some(r=>r.agent==='Kirti'), JSON.stringify(recs));
+  check('toggling a level off deletes that record', recs.length===1 && !recs.some(r=>r.agent==='Kirti'), JSON.stringify(recs));
   // separate areas coexist
   await nav(p,'assess');
   await p.fill('#assessWeek','2026-09-18'); await p.selectOption('#assessTeam','Team Lipika'); await p.selectOption('#assessArea','Sales Presentation / Pitch'); await p.waitForTimeout(250);
@@ -146,10 +150,16 @@ G('3. Assess — save / edit / delete');
   check('agent score averages across areas (75+100)/2 = 88', s.score===88, 'score='+s.score);
   // Clear Form
   await nav(p,'assess'); await p.waitForTimeout(200);
-  await p.click('#clearTeamForm'); await p.waitForTimeout(150);
-  check('Clear Form unselects every level and empties comments',
-    (await p.$$('#weeklyGrid .level-btn.selected')).length===0 &&
-    (await p.$$eval('#weeklyGrid .comment-input',es=>es.every(e=>e.value===''))));
+  await p.$eval('#weeklyGrid .assessment-person .level-btn[data-level="2"]',e=>e.click());
+  await p.click('#clearTeamForm'); await p.waitForTimeout(200);
+  check('Reset Form discards unsaved edits but keeps saved ones',
+    await p.evaluate(()=>{
+      const sel=[...document.querySelectorAll('#weeklyGrid .assessment-person')]
+        .map(r=>({a:r.dataset.agent,l:(r.querySelector('.level-btn.selected')||{}).textContent||null}));
+      const saved=state.records.filter(r=>r.week===document.getElementById('assessWeek').value
+        &&r.team===document.getElementById('assessTeam').value
+        &&(r.area||'')===document.getElementById('assessArea').value);
+      return sel.filter(x=>x.l).length===saved.length;}));
   await ctx.close();
 }
 
