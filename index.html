@@ -662,9 +662,18 @@ function agoText(){
   return m < 60 ? m+' min ago' : Math.round(m/60)+' hr ago';
 }
 
+// A pull keeps whatever week the user is looking at - but only once they have
+// actually picked one. Before that, the board must land on the newest week: the
+// seed data's week is a real option in the sheet's list, so without this the
+// first render's default would stick and a leader would open last week's board
+// (and, because Assess inherits the top-bar week, could score into it).
+var weekChosen=false;
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id==='weekFilter') weekChosen=true;
+}, true);
 function currentFilters(){
   return {
-    week: (document.getElementById('weekFilter')||{}).value,
+    week: weekChosen ? (document.getElementById('weekFilter')||{}).value : '',
     team: (document.getElementById('teamFilter')||{}).value,
     agentTeam: (document.getElementById('agentTeamFilter')||{}).value
   };

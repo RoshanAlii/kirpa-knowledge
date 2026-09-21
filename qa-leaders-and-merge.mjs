@@ -84,6 +84,19 @@ console.log('\n1. Merging 11 Sep into 12 Sep');
     'rev='+store.rev+' weeks='+JSON.stringify(sheetWeeks));
   check('the sheet still holds every record', store.state.records.length===8, 'n='+store.state.records.length);
 
+  // the board must open on the newest week, not on the seed data's week
+  check('a fresh browser lands on the newest week',
+    (await p.inputValue('#weekFilter'))==='2026-09-19', 'weekFilter='+await p.inputValue('#weekFilter'));
+  // ...but a week the user picks is kept across the next pull
+  await p.selectOption('#weekFilter','2026-09-12'); await p.waitForTimeout(200);
+  // make the sheet move so the next poll really applies a remote state
+  store={rev:store.rev+1,state:JSON.parse(JSON.stringify(store.state)),updatedAt:new Date().toISOString()};
+  store.state.records.push({week:'2026-09-19',team:'Team Kamal',agent:'Sarv',area:OBJ,level:2,comment:'from another device'});
+  await p.waitForTimeout(20000);
+  check('the remote change was pulled in', await p.evaluate(()=>state.records.some(r=>r.comment==='from another device')));
+  check('a week the user picked survives a pull',
+    (await p.inputValue('#weekFilter'))==='2026-09-12', 'weekFilter='+await p.inputValue('#weekFilter'));
+
   // and it does not keep firing
   const revAfter=store.rev, putsAfter=putCount;
   await p.waitForTimeout(3000);
