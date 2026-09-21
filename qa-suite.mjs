@@ -90,7 +90,7 @@ G('2. Dashboard figures');
     very:document.getElementById('veryCount').textContent,
     poorPct:document.getElementById('poorPct').textContent,
     // independent recomputation from raw state
-    calc:(()=>{const S={1:25,2:50,3:75,4:100};const recs=state.records.filter(r=>r.week==='2026-09-11'&&r.level);
+    calc:(()=>{const S={1:25,2:50,3:75,4:100};const recs=state.records.filter(r=>r.week==='2026-09-12'&&r.level);
       const byAgent={};recs.forEach(r=>{(byAgent[r.team+'|'+r.agent]=byAgent[r.team+'|'+r.agent]||[]).push(S[r.level])});
       const scores=Object.values(byAgent).map(a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length));
       const lvl=s=>s<38?1:s<63?2:s<88?3:4;const c={1:0,2:0,3:0,4:0};scores.forEach(s=>c[lvl(s)]++);
@@ -114,7 +114,7 @@ G('3. Assess — save / edit / delete');
   const {ctx,p}=await fresh();
   await nav(p,'assess');
   await p.fill('#assessWeek','2026-09-18'); await p.selectOption('#assessTeam','Team Lipika'); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(250);
-  check('roster shows all active members of the team', (await p.$$('#weeklyGrid .assessment-person')).length===5);
+  check('roster shows all rateable members of the team (leader excluded)', (await p.$$('#weeklyGrid .assessment-person')).length===4);
   // save two
   await p.$eval('#weeklyGrid [data-agent="Kirti"] .level-btn[data-level="1"]',e=>e.click());
   await p.$eval('#weeklyGrid [data-agent="Sadaf"] .level-btn[data-level="3"]',e=>e.click());
@@ -169,13 +169,16 @@ G('4. Assess — previous-level marker');
 {
   const {ctx,p}=await fresh();
   await nav(p,'assess');
-  await p.fill('#assessWeek','2026-09-11'); await p.selectOption('#assessTeam','Team Kamal'); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(250);
+  await p.fill('#assessWeek','2026-09-12'); await p.selectOption('#assessTeam','Team Kamal'); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(250);
   check('no marker when the selected week is the earliest', (await p.$$('#weeklyGrid .level-btn.prev')).length===0);
   check('"no earlier record" is suppressed when nobody has history', (await p.$$('#weeklyGrid .prev-none')).length===0);
   await p.fill('#assessWeek','2026-09-18'); await p.waitForTimeout(250);
   const rows=await p.$$eval('#weeklyGrid .assessment-person',es=>es.map(e=>({a:e.dataset.agent,prev:(e.querySelector('.level-btn.prev')||{}).textContent||null,tag:(e.querySelector('.prev-tag')||{}).textContent||null,none:!!e.querySelector('.prev-none')})));
   check('falls back to another area and names it', rows.find(r=>r.a==='Mona')?.prev==='Poor' && /Paper/.test(rows.find(r=>r.a==='Mona').tag||''), JSON.stringify(rows.find(r=>r.a==='Mona')));
-  check('agents with no history show "No earlier record"', rows.find(r=>r.a==='Kamal')?.none===true);
+  await p.selectOption('#assessTeam',"Team Manpreet Ma'am"); await p.waitForTimeout(250);
+  const rows2=await p.$$eval('#weeklyGrid .assessment-person',es=>es.map(e=>({a:e.dataset.agent,none:!!e.querySelector('.prev-none')})));
+  check('agents with no history show "No earlier record"', rows2.find(r=>r.a==='Vaishali')?.none===true, JSON.stringify(rows2.find(r=>r.a==='Vaishali')));
+  await p.selectOption('#assessTeam','Team Kamal'); await p.waitForTimeout(250);   // back to Kamal for the checks below
   check('marker never marks more than one button per agent', await p.$$eval('#weeklyGrid .assessment-person',es=>es.every(e=>e.querySelectorAll('.level-btn.prev').length<=1)));
   // same-area beats cross-area
   await p.$eval('#weeklyGrid [data-agent="Mona"] .level-btn[data-level="4"]',e=>e.click());
@@ -194,7 +197,7 @@ G('5. Agents view');
   const {ctx,p}=await fresh();
   await nav(p,'agents');
   const all=(await p.$$('#agentsBody tr')).length;
-  check('all 40 agents listed by default', all===40, 'rows='+all);
+  check('all 35 rateable agents listed by default (40 roster - 5 leaders)', all===35, 'rows='+all);
   await p.fill('#agentSearch','sah'); await p.waitForTimeout(200);
   const names=await p.$$eval('#agentsBody tr td:first-child',e=>e.map(x=>x.textContent));
   check('search matches case-insensitively on the name', names.length===2 && names.every(n=>/sah/i.test(n)), JSON.stringify(names));
@@ -212,7 +215,7 @@ G('5. Agents view');
     return [...document.querySelectorAll('#agentsBody tr td:first-child')].map(t=>t.textContent);});
   check('"Declined since last week" lists only agents whose score dropped', declined.length===1&&declined[0]==='Karan', JSON.stringify(declined));
   await p.selectOption('#agentLevelFilter','ALL'); await p.selectOption('#agentTeamFilter','Team Kamal'); await p.waitForTimeout(200);
-  check('team filter works', await p.$$eval('#agentsBody tr',rs=>rs.length===6&&rs.every(r=>r.children[1].textContent==='Team Kamal')));
+  check('team filter works', await p.$$eval('#agentsBody tr',rs=>rs.length===5&&rs.every(r=>r.children[1].textContent==='Team Kamal')));
   await p.selectOption('#agentTeamFilter','ALL'); await p.waitForTimeout(200);
   await p.click('#agentsBody .agent-link'); await p.waitForTimeout(300);
   check('clicking an agent opens the history modal', await p.isVisible('#agentModal.open'));
@@ -235,7 +238,7 @@ G('6. Teams / Reports / CSV');
   check('weekly summary has a row per week', (await p.$$('#weeklyReportBody tr')).length===1);
   check('team summary has a row per team', (await p.$$('#teamReportBody tr')).length===6);
   const kpis=await p.$$eval('#reportKpis .kpi strong',e=>e.map(x=>x.textContent));
-  check('report KPIs agree with the dashboard', kpis[0]==='40'&&kpis[1]==='19'&&kpis[2]==='48%'&&kpis[3]==='51%', JSON.stringify(kpis));
+  check('report KPIs agree with the dashboard', kpis[0]==='35'&&kpis[1]==='19'&&kpis[2]==='54%'&&kpis[3]==='51%', JSON.stringify(kpis));   // 35 rateable = 40 roster - 5 leaders
   const csv=await p.evaluate(()=>{const rows=[['Week','Team','Agent','Knowledge Area','Level','Score','Comment']];
     state.records.slice().forEach(r=>rows.push([r.week,r.team,r.agent,r.area,r.level?LEVELS[r.level]:'',r.level?SCORES[r.level]:'',r.comment||'']));return rows.length});
   check('CSV export covers every record', csv===20, 'rows='+csv);   // 19 records + header
@@ -260,15 +263,15 @@ G('7. Admin roster management');
   p.once('dialog',d=>d.accept());
   await p.click('#addAgentBtn'); await p.waitForTimeout(300);
   check('duplicate name (case-insensitive) is rejected', (await p.$$('#adminBody tr')).length===41);
-  await p.$eval('#adminBody .admin-toggle',e=>e.click()); await p.waitForTimeout(300);
+  await p.$eval('#adminBody tr:nth-child(2) .admin-toggle',e=>e.click()); await p.waitForTimeout(300);   // row 1 is the leader Lipika, already excluded from rating
   check('deactivate marks the agent inactive', await p.evaluate(()=>state.inactive.length===1));
   const active=await p.evaluate(()=>activeMembers('ALL').length);
-  check('inactive agent drops out of the active headcount', active===40, 'active='+active);
+  check('inactive agent drops out of the active headcount', active===35, 'active='+active);   // 41 roster - 5 leaders - 1 deactivated
   await nav(p,'assess'); await p.selectOption('#assessTeam','Team Lipika'); await p.waitForTimeout(250);
   const inGrid=await p.$$eval('#weeklyGrid .assessment-person',es=>es.map(e=>e.dataset.agent));
-  check('inactive agent is excluded from the assessment grid', !inGrid.includes('Lipika'), JSON.stringify(inGrid));
+  check('inactive agent is excluded from the assessment grid', !inGrid.includes('Priyanka Sunil'), JSON.stringify(inGrid));
   await nav(p,'admin');
-  await p.$eval('#adminBody .admin-toggle',e=>e.click()); await p.waitForTimeout(300);
+  await p.$eval('#adminBody tr:nth-child(2) .admin-toggle',e=>e.click()); await p.waitForTimeout(300);
   check('reactivate restores the agent', await p.evaluate(()=>state.inactive.length===0));
   await ctx.close();
 }
@@ -289,7 +292,7 @@ G('8. Settings — backup / restore / reset');
   check('reset clears the added week', await p.evaluate(()=>!state.records.some(r=>r.week==='2026-09-18')));
   const restored=await p.evaluate(b=>{const x=normalizeState(JSON.parse(b));state=x;saveState();setupSelectors();renderAll();return state.records.length},backup);
   check('importing a backup restores the records', restored===20, 'records='+restored);
-  const norm=await p.evaluate(()=>{const v=normalizeState({teams:state.teams,records:[{week:'2026-09-11',team:'Team Kamal',agent:'Mona',level:2}]});return v.records[0].area});
+  const norm=await p.evaluate(()=>{const v=normalizeState({teams:state.teams,records:[{week:'2026-09-12',team:'Team Kamal',agent:'Mona',level:2}]});return v.records[0].area});
   check('records with a missing area are normalised to the paper area', norm==='Overall / General Knowledge (Imported Paper)', norm);
   const bad=await p.evaluate(()=>normalizeState(null).records.length);
   check('a corrupt/empty backup falls back to the seed data', bad===19, 'records='+bad);
@@ -310,7 +313,7 @@ G('9. Escaping / injection');
   await p.click('#saveWeekBtn'); await p.waitForTimeout(400);
   check('HTML in a coaching comment is escaped', await p.evaluate(()=>window.__xss2===undefined));
   check("team name with an apostrophe (Team Manpreet Ma'am) round-trips", await p.evaluate(()=>{
-    const s=agentSummaries('2026-09-11',"Team Manpreet Ma'am"); return s.length===13 && s.filter(x=>x.assessed).length===6;}));
+    const s=agentSummaries('2026-09-12',"Team Manpreet Ma'am"); return s.length===13 && s.filter(x=>x.assessed).length===6;}));
   await ctx.close();
 }
 
@@ -337,7 +340,7 @@ G('10. Cloud sync');
   await p.waitForTimeout(100);
   check('every request carries a unique cache-buster', new Set(reqLog).size===reqLog.length || reqLog.length===0);
   // remote change propagates
-  store.rev++; store.state.records.push({week:'2026-09-11',team:'Team Kamal',agent:'Christine',area:'Objection Handling',level:3,comment:'from another device'});
+  store.rev++; store.state.records.push({week:'2026-09-12',team:'Team Kamal',agent:'Christine',area:'Objection Handling',level:3,comment:'from another device'});
   store.updatedAt=new Date().toISOString();
   await p.waitForTimeout(23000);
   check('a change made elsewhere is pulled in', await p.evaluate(()=>state.records.some(r=>r.comment==='from another device')));
@@ -358,11 +361,11 @@ G('10. Cloud sync');
 // ==========================================================
 G('11. Sync — conflict safety');
 {
-  store={rev:5,state:{teams:[{name:'Team Kamal',leader:'Kamal',members:['Kamal','Karan']}],records:[{week:'2026-09-11',team:'Team Kamal',agent:'Karan',area:'Objection Handling',level:1,comment:'remote'}],legacy:[],inactive:[],version:3},updatedAt:new Date().toISOString()};
+  store={rev:5,state:{teams:[{name:'Team Kamal',leader:'Kamal',members:['Kamal','Karan']}],records:[{week:'2026-09-12',team:'Team Kamal',agent:'Karan',area:'Objection Handling',level:1,comment:'remote'}],legacy:[],inactive:[],version:3},updatedAt:new Date().toISOString()};
   const {ctx,p}=await fresh({sync:true});
   await p.waitForTimeout(1200);
   check('remote state replaces local on first connect', await p.evaluate(()=>state.teams.length===1&&state.records.length===1));
-  check('roster from the sheet is what renders', await p.evaluate(()=>activeMembers('ALL').length===2));
+  check('roster from the sheet is what renders', await p.evaluate(()=>activeMembers('ALL').length===1));   // Kamal is the leader
   await ctx.close();
 }
 

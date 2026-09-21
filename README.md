@@ -13,16 +13,18 @@ Hosted on GitHub Pages; shared data lives in a Google Sheet via a small Apps Scr
 
 ## 1. What it does
 
-- 40-agent roster across 6 teams, each with a team leader
+- 40-agent roster across 6 teams, each with a team leader. **Team leaders are not rated** - they
+  run the assessment, so they never appear in the assess grid or in any coverage figure.
 - Weekly assessment entry per team, per knowledge area, on a 4-point scale
   (Poor 25% / Weak 50% / Good 75% / Very Good 100%)
 - Five knowledge areas: Objection Handling · Investment / ROI · Dubai Area & Market ·
-  Project / Product · Sales Presentation. Plus the imported handwritten paper week (11 Sep 2026).
+  Project / Product · Sales Presentation. Plus the imported handwritten paper week (12 Sep 2026,
+  filled in on paper over 11-12 Sep and stored as one round).
 - Dashboard: company score, level distribution, per-area scores, ranked training gaps, insights
 - **Previous-level memory**: when you assess a week, the button showing where that agent stood last
   time is outlined with a dashed border and captioned with the date, so movement is visible at the
   moment of scoring. It prefers the same knowledge area; if the agent has no history in that area it
-  falls back to their most recent record in any area and names it, e.g. `Last time · 11 Sep (Paper)`.
+  falls back to their most recent record in any area and names it, e.g. `Last time · 12 Sep (Paper)`.
   Agents with no history at all read "No earlier record".
 - Per-area progress: the Assess screen shows "**3 of 5** scored for Objection · still to score:
   Nikita, Aanchal". The dashboard's coverage figure is week-level - it counts an agent as assessed
@@ -202,6 +204,8 @@ node qa-suite.mjs
 node qa-concurrency.mjs   # two leaders saving at the same moment
 node qa-partial-saves.mjs # partial saves and merge-by-agent
 node qa-race.mjs          # stale poll reply vs a local save
+node qa-amend-past-week.mjs      # correcting a rating in a past week
+node qa-leaders-and-merge.mjs    # week merge + team leaders excluded from rating
 ```
 
 `qa-race.mjs` samples state continuously rather than only at the end - a revert that a later poll
@@ -220,3 +224,5 @@ numbers, so a maths regression fails the suite rather than agreeing with itself.
 | `qa-concurrency.mjs` | Two-leader simultaneous-save test |
 | `qa-partial-saves.mjs` | Partial save, toggle-to-clear, stale-leader merge |
 | `qa-race.mjs` | Stale poll reply vs. a local save; per-area coverage |
+| `qa-amend-past-week.mjs` | Correcting a rating in a past week |
+| `qa-leaders-and-merge.mjs` | Week merge and team-leader exclusion |

@@ -53,10 +53,10 @@ const W='2026-09-18', TEAM='Team Lipika', AREA='Objection Handling';
   await p.click('#clearTeamForm'); await p.waitForTimeout(250);
   check('Reset Form reloads saved marks instead of wiping them',
     (await p.$$('#weeklyGrid .level-btn.selected')).length===2);
-  await mark(p,'Lipika',4); await mark(p,'Sukhpreet',2);
+  await mark(p,'Priyanka Sunil',4); await mark(p,'Sukhpreet',2);   // Lipika is the TL and is not rated
   await p.click('#saveWeekBtn'); await p.waitForTimeout(400);
   check('THE BUG YOU FOUND: earlier scores survive a later partial save',
-    JSON.stringify(await recs(p,W,AREA))===JSON.stringify(['Kirti:1','Lipika:4','Sadaf:3','Sukhpreet:2']), JSON.stringify(await recs(p,W,AREA)));
+    JSON.stringify(await recs(p,W,AREA))===JSON.stringify(['Kirti:1','Priyanka Sunil:4','Sadaf:3','Sukhpreet:2']), JSON.stringify(await recs(p,W,AREA)));
   await p.context().close();
 }
 
@@ -97,11 +97,11 @@ const W='2026-09-18', TEAM='Team Lipika', AREA='Objection Handling';
   await B.evaluate(()=>{ if(window.__pollOff) return; });
   await grid(B,W,TEAM,AREA);
   const bSees=await B.$$eval('#weeklyGrid .level-btn.selected',e=>e.length);
-  await mark(B,'Lipika',4); await mark(B,'Priyanka Sunil',3);
+  await mark(B,'Priyanka Sunil',3);   // Lipika is the TL and is not rated
   await B.click('#saveWeekBtn'); await new Promise(r=>setTimeout(r,3500));
   const onSheet=store.state.records.filter(r=>r.week===W).map(r=>r.agent+':'+r.level).sort();
   check('THE STALE-LEADER CASE: leader A entries survive leader B save',
-    JSON.stringify(onSheet)===JSON.stringify(['Kirti:1','Lipika:4','Priyanka Sunil:3','Sadaf:3','Sukhpreet:2']),
+    JSON.stringify(onSheet)===JSON.stringify(['Kirti:1','Priyanka Sunil:3','Sadaf:3','Sukhpreet:2']),
     'B had '+bSees+' marks preloaded; sheet now: '+JSON.stringify(onSheet));
   await A.context().close(); await B.context().close(); await seed.context().close();
 }

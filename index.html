@@ -186,7 +186,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.0 · Paper baseline</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.1 · Paper baseline</div>
   </div>
 </aside>
 <main class="main">
@@ -256,7 +256,7 @@ html,body{max-width:100%;overflow-x:hidden}
       <div><label>Shared token</label><input id="syncToken" class="field" placeholder="kirpa_..."></div>
     </div>
     <div class="toolbar" style="margin-top:14px"><button class="btn btn-primary" id="syncSaveBtn">Connect &amp; Sync</button><button class="btn btn-outline" id="syncPullBtn">Pull from Sheet</button><button class="btn btn-outline" id="syncPushBtn">Push to Sheet</button><button class="btn btn-outline" id="syncClearBtn">Disconnect</button></div>
-    <div class="sync-status-line" id="syncStatusLine">Not connected.</div></div><div class="panel"><h3>Data Backup</h3><p class="notice">This single-file version stores data in this browser using localStorage. Export a backup before moving to another device.</p><div class="toolbar" style="margin-top:14px"><button class="btn btn-primary" id="exportJsonBtn">Export Backup</button><label class="btn btn-outline" style="display:inline-flex;align-items:center">Import Backup<input id="importJsonInput" type="file" accept="application/json" hidden></label></div></div><div class="panel danger-zone"><h3>Reset Demo / Paper Data</h3><p>Restore the original 40-person roster and the handwritten week-ending 11 Sep 2026 records.</p><button class="btn btn-danger" id="resetDataBtn">Reset to Original Data</button></div></div>
+    <div class="sync-status-line" id="syncStatusLine">Not connected.</div></div><div class="panel"><h3>Data Backup</h3><p class="notice">This single-file version stores data in this browser using localStorage. Export a backup before moving to another device.</p><div class="toolbar" style="margin-top:14px"><button class="btn btn-primary" id="exportJsonBtn">Export Backup</button><label class="btn btn-outline" style="display:inline-flex;align-items:center">Import Backup<input id="importJsonInput" type="file" accept="application/json" hidden></label></div></div><div class="panel danger-zone"><h3>Reset Demo / Paper Data</h3><p>Restore the original roster and the handwritten week-ending 12 Sep 2026 records.</p><button class="btn btn-danger" id="resetDataBtn">Reset to Original Data</button></div></div>
   <div class="panel"><h3>Hosting note</h3><p class="notice">This build is hosted as a static page on GitHub Pages and is protected by a client-side passcode only. That keeps the board out of casual view, but it is not real access control — do not treat the URL as confidential. Shared data is stored in your Google Sheet via the Apps Script web app configured above.</p></div>
 </section>
 </div>
@@ -287,9 +287,12 @@ const DEFAULT_TEAMS=[
 {name:'Team Priyanka',leader:'Priyanka',members:['Priyanka','Ameer','Akshay','Spoorthi','Geetika']},
 {name:'Team Kamal',leader:'Kamal',members:['Kamal','Sarv','Prachi','Mona','Christine','Karan']}
 ];
-const PAPER_WEEK='2026-09-11';
+// The handwritten pads were filled in over 11 and 12 Sep but they are one
+// assessment round, so the baseline is stored under a single week: 12 Sep.
+const PAPER_WEEK='2026-09-12';
 const DEFAULT_RECORDS=[
-// Transcribed from the four handwritten Kirpa pads (week ending 11 Sep 2026).
+// Transcribed from the four handwritten Kirpa pads, filled in over 11-12 Sep
+// 2026 and stored as one round under week ending 12 Sep 2026.
 // The pads record one overall judgement per agent, not per knowledge area, so
 // every row lands in the imported-paper area. An agent with a blank row was not
 // assessed that day and gets no record at all.
@@ -323,17 +326,47 @@ const LEGACY=[];
 const STORE='kirpaKnowledgeWeeklyBoard_v3';
 function deepClone(v){return JSON.parse(JSON.stringify(v))}
 function initialState(){return{teams:deepClone(DEFAULT_TEAMS),records:deepClone(DEFAULT_RECORDS),legacy:deepClone(LEGACY),inactive:[],version:3}}
+// --- one-time migration: 11 Sep and 12 Sep are a single round -----------
+// Leaders wrote the paper baseline across two days. Keeping them as separate
+// weeks made the dashboard compare a 30-agent week against a 2-agent week, so
+// every 11 Sep record is relabelled 12 Sep. This is idempotent - once no
+// 2026-09-11 record survives anywhere it does nothing - and it runs on the
+// local copy AND on anything pulled from the sheet, so a browser holding an
+// old cached copy cannot put the split week back.
+const MERGE_FROM='2026-09-11', MERGE_INTO='2026-09-12';
+let migrationPending=false;
+function mergePaperWeeks(v){
+  if(!v||!Array.isArray(v.records))return false;
+  if(!v.records.some(r=>r.week===MERGE_FROM))return false;
+  // A 12 Sep record for the same agent and area is the later note, so it wins;
+  // the 11 Sep one is dropped rather than duplicated. (On the live data there
+  // is no such collision - the two 12 Sep records are a different area.)
+  const seen=new Set(v.records.filter(r=>r.week===MERGE_INTO).map(r=>r.team+'|'+r.agent+'|'+(r.area||'')));
+  const out=[];
+  v.records.forEach(r=>{
+    if(r.week!==MERGE_FROM){out.push(r);return}
+    const k=r.team+'|'+r.agent+'|'+(r.area||'');
+    if(seen.has(k))return;
+    seen.add(k); r.week=MERGE_INTO; out.push(r);
+  });
+  v.records=out;
+  return true;
+}
 let state=loadState();
 function normalizeState(v){
   if(!v||!Array.isArray(v.teams)||!Array.isArray(v.records))return initialState();
   v.records=v.records.map(r=>({...r,area:r.area||LEGACY_AREA}));
   v.legacy=(v.legacy||[]).map(r=>({...r,area:r.area||LEGACY_AREA}));
   v.inactive=v.inactive||[]; v.version=3;
+  if(mergePaperWeeks(v)) migrationPending=true;
   return v;
 }
 function loadState(){try{const v=JSON.parse(localStorage.getItem(STORE)||'null');return normalizeState(v)}catch(e){return initialState()}}
 function saveState(){localStorage.setItem(STORE,JSON.stringify(state))}
-function activeMembers(teamName='ALL'){const arr=[];state.teams.forEach(t=>{if(teamName!=='ALL'&&t.name!==teamName)return;t.members.forEach(m=>{if(!state.inactive.includes(t.name+'|'+m))arr.push({team:t.name,agent:m,leader:t.leader})})});return arr}
+// Team leaders run the assessment, they are not rated in it. They drop out of
+// the assess grid, every coverage denominator and the not-assessed lists, but
+// stay on the Admin roster and in each team card header as "TL - <name>".
+function activeMembers(teamName='ALL'){const arr=[];state.teams.forEach(t=>{if(teamName!=='ALL'&&t.name!==teamName)return;t.members.forEach(m=>{if(m===t.leader)return;if(!state.inactive.includes(t.name+'|'+m))arr.push({team:t.name,agent:m,leader:t.leader})})});return arr}
 function allWeeks(){const w=[...new Set(state.records.map(r=>r.week))].sort().reverse();return w.length?w:[PAPER_WEEK]}
 function fmtWeek(w){const d=new Date(w+'T12:00:00');return 'Week ending: '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
 function selectedWeek(){return document.getElementById('weekFilter').value||allWeeks()[0]}
@@ -412,7 +445,7 @@ function renderAssessmentGrid(){
         area=document.getElementById('assessArea').value,
         t=state.teams.find(x=>x.name===team);
   if(!t)return;
-  const roster=t.members.filter(m=>!state.inactive.includes(team+'|'+m));
+  const roster=activeMembers(team).map(m=>m.agent);   // same rule as every count: no leaders, no deactivated agents
   const anyHistory=roster.some(a=>previousRecordFor(week,team,a,area));
   const grid=document.getElementById('weeklyGrid');
   grid.classList.toggle('has-history',anyHistory);
@@ -654,10 +687,28 @@ function applyRemote(remote, rev){
   setupSelectors();
   restoreFilters(f);
   renderAll();
+  settleMigration();
+}
+
+// The 11-Sep-into-12-Sep merge happens in normalizeState, which only fixes the
+// copy in this browser. This writes the fixed copy back to the sheet so it is
+// done once for everyone. It only ever fires straight after a clean read with
+// nothing queued, so the full put cannot trample another leader's save.
+function settleMigration(){
+  if(!migrationPending) return;
+  migrationPending = false;
+  // Write the store directly, NOT through saveState() - that wrapper enqueues a
+  // sync op of its own, which would make the queue look busy and suppress the
+  // full push below.
+  try{ localStorage.setItem(STORE, JSON.stringify(state)); }catch(e){}
+  if(!connected() || pending()) return;   // someone's edit is still queued; the next clean poll will do it
+  enqueue({t:'replace'});
+  flush(true);
 }
 
 function reportOk(rev, updatedAt){
   failStreak = 0; lastGoodAt = Date.now();
+  settleMigration();
   setPill('ok', dirty ? 'Saving…' : 'Synced');
   setStatus('Connected. Revision '+(rev||0)+', last change '+(updatedAt ? new Date(updatedAt).toLocaleString('en-GB') : 'n/a')+'. Checked '+agoText()+'.');
 }

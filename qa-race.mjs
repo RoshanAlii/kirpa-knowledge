@@ -75,13 +75,14 @@ check('the save still reached the sheet', JSON.stringify(onSheet)===JSON.stringi
 // per-area coverage surfaces the gap the dashboard cannot
 await grid(p,W,TM,AR);
 const prog=await p.textContent('#areaProgress');
-check('Assess shows per-area progress', /2 of 5 scored/.test(prog), prog);
+check('Assess shows per-area progress', /2 of 4 scored/.test(prog), prog);   // Team Mubeen is 5 people, one of them the leader
 check('Assess names who is still missing in this area',
-  /Mubeen/.test(prog)&&/Sahil Mendiratta/.test(prog)&&/Aanchal/.test(prog), prog);
+  /Sahil Mendiratta/.test(prog)&&/Aanchal/.test(prog), prog);
+check('the team leader is not named as missing', !/still to score:[^\n]*\bMubeen\b/.test(prog), prog);
 await p.click('[data-view="dashboard"]'); await p.waitForTimeout(400);
 await p.selectOption('#teamFilter',TM); await p.waitForTimeout(400);
 const areaCounts=await p.$$eval('#teamScores .area-row',rs=>rs.map(r=>r.querySelector('.area-n').textContent));
-check('dashboard area rows show assessed-per-area', areaCounts[0]==='2/5', JSON.stringify(areaCounts));
+check('dashboard area rows show assessed-per-area', areaCounts[0]==='2/4', JSON.stringify(areaCounts));
 const cov=await p.textContent('#coverageText');
 check('the company coverage figure is labelled as week-level', /any area/.test(cov), cov);
 

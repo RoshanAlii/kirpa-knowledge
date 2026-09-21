@@ -36,7 +36,7 @@ await p.fill('#gateInput','Kirpa@2026'); await p.click('#gateBtn'); await p.wait
 await p.click('[data-view="settings"]'); await p.waitForTimeout(250);
 await p.click('#syncPushBtn'); await p.waitForTimeout(2500);
 
-const OLD='2026-09-11', NEW='2026-09-25', TM='Team Kamal', AR='Overall / General Knowledge (Imported Paper)';
+const OLD='2026-09-12', NEW='2026-09-25', TM='Team Kamal', AR='Overall / General Knowledge (Imported Paper)';
 // add a later week so we are genuinely amending a PAST week, not the newest one
 await p.click('[data-view="assess"]'); await p.waitForTimeout(300);
 await p.fill('#assessWeek',NEW); await p.selectOption('#assessTeam',TM); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(300);

@@ -1,6 +1,6 @@
 # Kirpa Knowledge — handover
 
-Everything a new session needs to pick this up cold. Written 19 Sep 2026.
+Everything a new session needs to pick this up cold. Written 19 Sep 2026, updated 21 Sep 2026.
 
 ---
 
@@ -30,7 +30,7 @@ Status: **one-week pilot**, deliberately temporary. Not a permanent system.
 The Sheet and Script live in Ali's **roshan@kirpaproperties.com** Google account. The web app runs
 as that account ("Execute as: Me", "Who has access: Anyone"), so team leaders never need Sheet access.
 
-Current versions: `index.html` **v2.0**, Apps Script deployment **Version 5**.
+Current versions: `index.html` **v2.1**, Apps Script deployment **Version 5**.
 
 ### Repo files
 | File | Purpose |
@@ -44,6 +44,7 @@ Current versions: `index.html` **v2.0**, Apps Script deployment **Version 5**.
 | `qa-partial-saves.mjs` | Partial saves, toggle-to-clear, stale-leader merge |
 | `qa-race.mjs` | Stale poll reply vs a local save; per-area coverage |
 | `qa-amend-past-week.mjs` | Correcting a rating in a past week |
+| `qa-leaders-and-merge.mjs` | The 11-into-12 Sep week merge and the team-leader exclusion |
 
 Run any suite with `node <file>.mjs` (needs `npm i playwright && npx playwright install chromium`).
 They spin up a local copy of `index.html` plus a mock Apps Script — **nothing touches the live sheet.**
@@ -62,7 +63,7 @@ state = {
 }
 ```
 
-- `week` — ISO date of the **week ending**, e.g. `2026-09-11`
+- `week` — ISO date of the **week ending**, e.g. `2026-09-12`
 - `level` — 1 Poor · 2 Weak · 3 Good · 4 Very Good → scores 25 / 50 / 75 / 100
 - A record's identity is **(week, team, agent, area)**. No id field.
 - **No record means not assessed.** Absentees are simply absent — never a zero.
@@ -121,6 +122,10 @@ Each of these was a real bug found in testing. Do not "simplify" them away.
    Deploy → Manage deployments → pencil → Version → **New version** → Deploy. The `/exec` URL is
    stable across redeploys; only "New deployment" changes it.
 8. GitHub Pages caches for 10 minutes. Add `?v=N` to check a fresh build.
+9. **`saveState()` is monkey-patched by the sync layer.** Calling it enqueues a sync op as a side
+   effect. Code that wants to persist state *without* queuing a write must call
+   `localStorage.setItem(STORE, ...)` directly — `settleMigration()` does exactly this, and calling
+   `saveState()` there made the queue look busy and silently suppressed the migration push.
 
 ---
 
@@ -133,6 +138,15 @@ Each of these was a real bug found in testing. Do not "simplify" them away.
   team + area, re-score, save. Updates in place.
 - **Previous-level marker**: the dashed button shows where that agent stood last time — same area if
   available, otherwise their most recent record in any area, labelled.
+- **Team leaders are never rated.** `activeMembers()` skips any member whose name equals their
+  team's `leader`, so leaders are absent from the assess grid, every coverage denominator and the
+  not-assessed lists. They stay on the Admin roster (flagged "Yes") and in each team card header as
+  "TL · <name>". Matching is exact, so "Priyanka Sunil" is unaffected by leader "Priyanka".
+- **Removing someone from rating**: Admin → Deactivate. Their records stay in the sheet and in
+  their history modal; they simply leave the roster and the counts. Reactivate puts them back.
+- **The 11 Sep / 12 Sep merge** runs in `normalizeState()`, so it fixes the local copy *and*
+  anything pulled from the sheet, then `settleMigration()` writes the merged copy back once. It is
+  idempotent and a no-op once no `2026-09-11` record survives. Safe to delete after the pilot.
 
 ---
 
@@ -140,10 +154,9 @@ Each of these was a real bug found in testing. Do not "simplify" them away.
 
 | Issue | Detail |
 |---|---|
-| **Roster says 41, only 40 distinct names** | **Navneet** exists in both Team Manpreet Ma'am and Team Lipika, with one 11 Sep "Poor" record on the Team Lipika copy. Unresolved: duplicate, or two real people needing distinct names. Ask Ali. |
+| **Roster has two Navneets** | Team Lipika's Navneet was added through Add Agent and holds every Navneet record; Team Manpreet Ma'am's Navneet is the original seed entry and has never been scored. Almost certainly one person entered twice. Unresolved — ask Ali before deleting either. |
 | **Add Agent misses cross-team duplicates** | The check only looks within the target team. Same name on another team passes silently. |
-| **Stray week `2026-09-12`** | 2 records (Ameer 75, Spoorthi 25), identical to their 11 Sep values — almost certainly a mis-typed date. It becomes the comparison baseline for the next week's "pts" figure. |
-| **"+N pts vs previous week" is weak** | It compares the average of *whoever was assessed* this week against *whoever was assessed* last week — different populations. "Previous week" means the last week with any data, not 7 days earlier. A like-for-like (same agents only) figure was proposed and not yet built. |
+| **"+N pts vs previous week" is weak** | It compares the average of *whoever was assessed* this week against *whoever was assessed* last week — different populations. "Previous week" means the last week with any data, not 7 days earlier. Much less misleading since the 11/12 Sep merge gave it a full baseline week, but still not like-for-like. |
 | **No audit trail** | The sheet stores current values, not who changed them or when. Every write goes through the script as Ali. Sheet version history is the only record. |
 | **Passcode is client-side** | SHA-256 hash and the shared token are both in the public repo. It keeps the board out of casual view; it is not access control. 40 named employees with performance ratings sit on a public URL. |
 | Last-write-wins per agent | Two leaders scoring the *same agent, same area, same week* within seconds: one value wins. Everything else merges correctly. |
