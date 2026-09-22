@@ -206,6 +206,7 @@ node qa-partial-saves.mjs # partial saves and merge-by-agent
 node qa-race.mjs          # stale poll reply vs a local save
 node qa-amend-past-week.mjs      # correcting a rating in a past week
 node qa-leaders-and-merge.mjs    # week merge + team leaders excluded from rating
+node qa-ui-audit.mjs             # layout audit: clipped text, overflow, tap targets, at 6 widths
 ```
 
 `qa-race.mjs` samples state continuously rather than only at the end - a revert that a later poll
@@ -226,3 +227,4 @@ numbers, so a maths regression fails the suite rather than agreeing with itself.
 | `qa-race.mjs` | Stale poll reply vs. a local save; per-area coverage |
 | `qa-amend-past-week.mjs` | Correcting a rating in a past week |
 | `qa-leaders-and-merge.mjs` | Week merge and team-leader exclusion |
+| `qa-ui-audit.mjs` | Layout audit across 7 views x 6 widths |

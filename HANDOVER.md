@@ -30,7 +30,7 @@ Status: **one-week pilot**, deliberately temporary. Not a permanent system.
 The Sheet and Script live in Ali's **roshan@kirpaproperties.com** Google account. The web app runs
 as that account ("Execute as: Me", "Who has access: Anyone"), so team leaders never need Sheet access.
 
-Current versions: `index.html` **v2.1**, Apps Script deployment **Version 5**.
+Current versions: `index.html` **v2.2**, Apps Script deployment **Version 5**.
 
 ### Repo files
 | File | Purpose |
@@ -45,6 +45,7 @@ Current versions: `index.html` **v2.1**, Apps Script deployment **Version 5**.
 | `qa-race.mjs` | Stale poll reply vs a local save; per-area coverage |
 | `qa-amend-past-week.mjs` | Correcting a rating in a past week |
 | `qa-leaders-and-merge.mjs` | The 11-into-12 Sep week merge and the team-leader exclusion |
+| `qa-ui-audit.mjs` | Layout audit - clipped text, overflow, tap targets, across 7 views x 6 widths |
 
 Run any suite with `node <file>.mjs` (needs `npm i playwright && npx playwright install chromium`).
 They spin up a local copy of `index.html` plus a mock Apps Script — **nothing touches the live sheet.**
@@ -122,7 +123,13 @@ Each of these was a real bug found in testing. Do not "simplify" them away.
    Deploy → Manage deployments → pencil → Version → **New version** → Deploy. The `/exec` URL is
    stable across redeploys; only "New deployment" changes it.
 8. GitHub Pages caches for 10 minutes. Add `?v=N` to check a fresh build.
-9. **`saveState()` is monkey-patched by the sync layer.** Calling it enqueues a sync op as a side
+9. **A fixed-height control must not carry vertical padding.** `.field` had
+   `height:40px` *and* `padding:10px 11px`, which left an 18px content box for a
+   16px line - Chrome on macOS clipped the descenders of "Team Lipika" and
+   "Objection Handling". Single-line controls size themselves with `height` plus
+   horizontal padding only; `select.field` also needs `padding-right` so the text
+   does not run under the native chevron. `qa-ui-audit.mjs` fails on both.
+10. **`saveState()` is monkey-patched by the sync layer.** Calling it enqueues a sync op as a side
    effect. Code that wants to persist state *without* queuing a write must call
    `localStorage.setItem(STORE, ...)` directly — `settleMigration()` does exactly this, and calling
    `saveState()` there made the queue look busy and silently suppressed the migration push.
