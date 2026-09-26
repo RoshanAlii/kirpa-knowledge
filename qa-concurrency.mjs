@@ -44,14 +44,14 @@ await new Promise(r=>setTimeout(r,1500));
 
 async function score(p,team,agent,level,area){
   await p.click('[data-view="assess"]'); await p.waitForTimeout(250);
-  await p.fill('#assessWeek','2026-09-18'); await p.selectOption('#assessTeam',team); await p.selectOption('#assessArea',area); await p.waitForTimeout(250);
+  await p.fill('#assessWeek','2026-09-18'); await p.selectOption('#assessTeam',team); await p.$eval('#assessArea',(el,v)=>{el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}))}, area); await p.waitForTimeout(250);
   await p.$eval(`#weeklyGrid [data-agent="${agent}"] .level-btn[data-level="${level}"]`,e=>e.click());
   await p.click('#saveWeekBtn');
 }
 
 console.log('--- SCENARIO 1: two leaders, DIFFERENT teams, saving at the same moment ---');
-await Promise.all([ score(A,'Team Kamal','Karan',4,'Objection Handling'),
-                    score(B,'Team Saloni','Ritika',1,'Objection Handling') ]);
+await Promise.all([ score(A,'Team Kamal','Karan',4,'Basic Real Estate KB'),
+                    score(B,'Team Saloni','Ritika',1,'Basic Real Estate KB') ]);
 await new Promise(r=>setTimeout(r,26000));
 let karan=store.state.records.find(r=>r.week==='2026-09-18'&&r.agent==='Karan');
 let ritika=store.state.records.find(r=>r.week==='2026-09-18'&&r.agent==='Ritika');
@@ -60,8 +60,8 @@ console.log('  Ritika (leader B) survived:', !!ritika, ritika?('level '+ritika.l
 console.log('  => both survived:', !!karan && !!ritika);
 
 console.log('\n--- SCENARIO 2: two leaders, SAME team + same agent, same moment ---');
-await Promise.all([ score(A,'Team Mubeen','Faiyaz',1,'Objection Handling'),
-                    score(B,'Team Mubeen','Faiyaz',4,'Objection Handling') ]);
+await Promise.all([ score(A,'Team Mubeen','Faiyaz',1,'Basic Real Estate KB'),
+                    score(B,'Team Mubeen','Faiyaz',4,'Basic Real Estate KB') ]);
 await new Promise(r=>setTimeout(r,26000));
 const f=store.state.records.filter(r=>r.week==='2026-09-18'&&r.agent==='Faiyaz');
 console.log('  records for Faiyaz on the sheet:', f.length, JSON.stringify(f.map(r=>r.level)));

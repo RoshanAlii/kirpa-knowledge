@@ -30,7 +30,7 @@ Status: **one-week pilot**, deliberately temporary. Not a permanent system.
 The Sheet and Script live in Ali's **roshan@kirpaproperties.com** Google account. The web app runs
 as that account ("Execute as: Me", "Who has access: Anyone"), so team leaders never need Sheet access.
 
-Current versions: `index.html` **v2.2**, Apps Script deployment **Version 5**.
+Current versions: `index.html` **v2.3**, Apps Script deployment **Version 5**.
 
 ### Repo files
 | File | Purpose |
@@ -46,6 +46,7 @@ Current versions: `index.html` **v2.2**, Apps Script deployment **Version 5**.
 | `qa-amend-past-week.mjs` | Correcting a rating in a past week |
 | `qa-leaders-and-merge.mjs` | The 11-into-12 Sep week merge and the team-leader exclusion |
 | `qa-ui-audit.mjs` | Layout audit - clipped text, overflow, tap targets, across 7 views x 6 widths |
+| `qa-single-area.mjs` | The collapse of the five categories into one |
 
 Run any suite with `node <file>.mjs` (needs `npm i playwright && npx playwright install chromium`).
 They spin up a local copy of `index.html` plus a mock Apps Script — **nothing touches the live sheet.**
@@ -70,9 +71,11 @@ state = {
 - **No record means not assessed.** Absentees are simply absent — never a zero.
 - Agent score = mean of their area scores that week. Company score = mean over **assessed** agents.
 
-Areas: Objection Handling · Investment / ROI Knowledge · Dubai Area & Market Knowledge ·
-Project / Product Knowledge · Sales Presentation / Pitch · plus
-`Overall / General Knowledge (Imported Paper)` for the handwritten baseline.
+Areas: **one** - `Basic Real Estate KB`. The board originally carried five categories plus a
+paper-import area, but every assessment ever recorded was the same basic real-estate test, so
+they were collapsed into one on 26 Sep. `AREAS` in `index.html` is still a list: add entries and
+per-area scoring, the area picker and the two per-area dashboard panels all come back on their
+own. Nothing else is hard-coded to a single area.
 
 ### Sheet tabs
 - `_state` — A1 holds `{rev, updatedAt, chunks}`; A2 down holds the JSON state in 40k-char chunks
@@ -123,13 +126,18 @@ Each of these was a real bug found in testing. Do not "simplify" them away.
    Deploy → Manage deployments → pencil → Version → **New version** → Deploy. The `/exec` URL is
    stable across redeploys; only "New deployment" changes it.
 8. GitHub Pages caches for 10 minutes. Add `?v=N` to check a fresh build.
-9. **A fixed-height control must not carry vertical padding.** `.field` had
+9. **A record is keyed by (week, team, agent, area).** Change an agent's team or
+   collapse the area list and those keys move: re-point the affected records in the
+   same edit or their history orphans (the agent reads "not assessed" and loses the
+   "last time" marker). Both migrations in `normalizeState` do this, and both check
+   for the duplicate that a key change can create.
+10. **A fixed-height control must not carry vertical padding.** `.field` had
    `height:40px` *and* `padding:10px 11px`, which left an 18px content box for a
    16px line - Chrome on macOS clipped the descenders of "Team Lipika" and
    "Objection Handling". Single-line controls size themselves with `height` plus
    horizontal padding only; `select.field` also needs `padding-right` so the text
    does not run under the native chevron. `qa-ui-audit.mjs` fails on both.
-10. **`saveState()` is monkey-patched by the sync layer.** Calling it enqueues a sync op as a side
+11. **`saveState()` is monkey-patched by the sync layer.** Calling it enqueues a sync op as a side
    effect. Code that wants to persist state *without* queuing a write must call
    `localStorage.setItem(STORE, ...)` directly — `settleMigration()` does exactly this, and calling
    `saveState()` there made the queue look busy and silently suppressed the migration push.

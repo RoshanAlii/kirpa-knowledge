@@ -40,10 +40,10 @@ const open=async()=>{const p=await (await b.newContext()).newPage();
   await p.goto('http://localhost:8921/'); await p.waitForTimeout(250);
   await p.fill('#gateInput','Kirpa@2026'); await p.click('#gateBtn'); await p.waitForTimeout(1100); return p;};
 const grid=async(p,w,t,a)=>{await p.click('[data-view="assess"]');await p.waitForTimeout(250);
-  await p.fill('#assessWeek',w);await p.selectOption('#assessTeam',t);await p.selectOption('#assessArea',a);await p.waitForTimeout(280);};
+  await p.fill('#assessWeek',w);await p.selectOption('#assessTeam',t);await p.$eval('#assessArea',(el,v)=>{el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}))}, a);await p.waitForTimeout(280);};
 const mark=(p,ag,l)=>p.$eval(`#weeklyGrid [data-agent="${ag}"] .level-btn[data-level="${l}"]`,e=>e.click());
 
-const W='2026-09-18', TM='Team Mubeen', AR='Objection Handling';
+const W='2026-09-18', TM='Team Mubeen', AR='Basic Real Estate KB';
 const seed=await open();
 await seed.click('[data-view="settings"]'); await seed.waitForTimeout(300);
 await seed.click('#syncPushBtn'); await seed.waitForTimeout(2200);

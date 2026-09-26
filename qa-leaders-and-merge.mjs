@@ -73,16 +73,20 @@ console.log('\n1. Merging 11 Sep into 12 Sep');
     karan:state.records.filter(r=>r.agent==='Karan').map(r=>r.week+'/'+r.level).sort(),
     ameer:state.records.filter(r=>r.agent==='Ameer').map(r=>r.week+'/'+r.area+'/'+r.level).sort()}));
   check('no 2026-09-11 record survives', !d.weeks.includes('2026-09-11'), JSON.stringify(d.weeks));
-  check('nothing was lost in the merge', d.n===8, 'records='+d.n);
-  check('all seven paper/stray rows now sit on 12 Sep', d.twelve===7, 'twelve='+d.twelve);
+  // this seed uses the OLD category names, so the area collapse runs too: the 8
+  // seeded rows become 6 because Ameer and Spoorthi were each scored once under
+  // each of two categories in the same week.
+  check('nothing is lost beyond the two category merges', d.n===6, 'records='+d.n);
+  check('the five 12 Sep rows all sit on 12 Sep', d.twelve===5, 'twelve='+d.twelve);
   check('the later week is untouched', d.karan.join()==='2026-09-12/3,2026-09-19/2', JSON.stringify(d.karan));
-  check('an agent keeps both of his rows, one per area', d.ameer.length===2, JSON.stringify(d.ameer));
+  check('two old category rows for one agent collapse into one', d.ameer.length===1, JSON.stringify(d.ameer));
+  check('that merged row keeps the level', d.ameer[0] && /\/3$/.test(d.ameer[0]), JSON.stringify(d.ameer));
 
   // the fix is written back to the sheet, not just held locally
   const sheetWeeks=[...new Set(store.state.records.map(r=>r.week))].sort();
   check('the merged copy is pushed back to the sheet', !sheetWeeks.includes('2026-09-11')&&store.rev>4,
     'rev='+store.rev+' weeks='+JSON.stringify(sheetWeeks));
-  check('the sheet still holds every record', store.state.records.length===8, 'n='+store.state.records.length);
+  check('the sheet holds the collapsed set', store.state.records.length===6, 'n='+store.state.records.length);
 
   // the board must open on the newest week, not on the seed data's week
   check('a fresh browser lands on the newest week',
@@ -135,7 +139,7 @@ console.log('3. Team leaders are not rated');
     am.active===am.roster-5, 'active='+am.active+' roster='+am.roster);
 
   await p.click('[data-view="assess"]'); await p.waitForTimeout(300);
-  await p.selectOption('#assessTeam','Team Lipika'); await p.selectOption('#assessArea',OBJ); await p.waitForTimeout(350);
+  await p.selectOption('#assessTeam','Team Lipika'); await p.$eval('#assessArea',(el,v)=>{el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}))}, OBJ); await p.waitForTimeout(350);
   const grid=await p.$$eval('#weeklyGrid .assessment-person',es=>es.map(e=>e.dataset.agent));
   check('the leader is not in the assess grid', !grid.includes('Lipika'), JSON.stringify(grid));
   check('every other member still is', ['Priyanka Sunil','Kirti','Sadaf','Sukhpreet'].every(a=>grid.includes(a)), JSON.stringify(grid));

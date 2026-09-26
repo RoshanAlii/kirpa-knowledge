@@ -207,6 +207,7 @@ node qa-race.mjs          # stale poll reply vs a local save
 node qa-amend-past-week.mjs      # correcting a rating in a past week
 node qa-leaders-and-merge.mjs    # week merge + team leaders excluded from rating
 node qa-ui-audit.mjs             # layout audit: clipped text, overflow, tap targets, at 6 widths
+node qa-single-area.mjs          # the five categories collapsed into one, without duplicating
 ```
 
 `qa-race.mjs` samples state continuously rather than only at the end - a revert that a later poll
@@ -228,3 +229,4 @@ numbers, so a maths regression fails the suite rather than agreeing with itself.
 | `qa-amend-past-week.mjs` | Correcting a rating in a past week |
 | `qa-leaders-and-merge.mjs` | Week merge and team-leader exclusion |
 | `qa-ui-audit.mjs` | Layout audit across 7 views x 6 widths |
+| `qa-single-area.mjs` | Category collapse: no duplicates, nothing lost |

@@ -36,10 +36,10 @@ await p.fill('#gateInput','Kirpa@2026'); await p.click('#gateBtn'); await p.wait
 await p.click('[data-view="settings"]'); await p.waitForTimeout(250);
 await p.click('#syncPushBtn'); await p.waitForTimeout(2500);
 
-const OLD='2026-09-12', NEW='2026-09-25', TM='Team Kamal', AR='Overall / General Knowledge (Imported Paper)';
+const OLD='2026-09-12', NEW='2026-09-25', TM='Team Kamal', AR='Basic Real Estate KB';
 // add a later week so we are genuinely amending a PAST week, not the newest one
 await p.click('[data-view="assess"]'); await p.waitForTimeout(300);
-await p.fill('#assessWeek',NEW); await p.selectOption('#assessTeam',TM); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(300);
+await p.fill('#assessWeek',NEW); await p.selectOption('#assessTeam',TM); await p.$eval('#assessArea',(el,v)=>{el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}))}, 'Basic Real Estate KB'); await p.waitForTimeout(300);
 await p.$eval('#weeklyGrid [data-agent="Karan"] .level-btn[data-level="4"]',e=>e.click());
 await p.click('#saveWeekBtn'); await p.waitForTimeout(3000);
 
@@ -49,7 +49,7 @@ await p.selectOption('#weekFilter',OLD); await p.waitForTimeout(400);
 await p.click('[data-view="assess"]'); await p.waitForTimeout(400);
 check('opening Assess carries the week chosen in the top filter',
   (await p.inputValue('#assessWeek'))===OLD, 'assessWeek='+await p.inputValue('#assessWeek'));
-await p.selectOption('#assessTeam',TM); await p.selectOption('#assessArea',AR); await p.waitForTimeout(400);
+await p.selectOption('#assessTeam',TM); await p.$eval('#assessArea',(el,v)=>{el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}))}, AR); await p.waitForTimeout(400);
 check('the past week shows its saved ratings pre-selected',
   await p.$eval('#weeklyGrid [data-agent="Mona"] .level-btn[data-level="1"]',e=>e.classList.contains('selected')));
 
@@ -75,7 +75,7 @@ check('no extra record was created anywhere', total===20, 'sheet holds '+total+'
 // does the correction flow through to derived views?
 await p.selectOption('#weekFilter',NEW); await p.waitForTimeout(500);
 await p.click('[data-view="assess"]'); await p.waitForTimeout(300);
-await p.fill('#assessWeek',NEW); await p.selectOption('#assessTeam',TM); await p.selectOption('#assessArea','Objection Handling'); await p.waitForTimeout(400);
+await p.fill('#assessWeek',NEW); await p.selectOption('#assessTeam',TM); await p.$eval('#assessArea',(el,v)=>{el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}))}, 'Basic Real Estate KB'); await p.waitForTimeout(400);
 const tag=await p.$eval('#weeklyGrid .assessment-person[data-agent="Mona"]',e=>(e.querySelector('.level-btn.prev')||{}).textContent||null);
 check('the "last time" marker reflects the corrected value', tag==='Good', 'marker shows '+tag);
 

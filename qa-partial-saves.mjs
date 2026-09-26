@@ -35,11 +35,11 @@ async function open(sync){const p=await (await b.newContext()).newPage();
   await p.goto('http://localhost:8911/'+(sync?'?sync=1':'')); await p.waitForTimeout(250);
   await p.fill('#gateInput','Kirpa@2026'); await p.click('#gateBtn'); await p.waitForTimeout(sync?1100:350); return p;}
 const grid=async(p,week,team,area)=>{await p.click('[data-view="assess"]');await p.waitForTimeout(250);
-  await p.fill('#assessWeek',week);await p.selectOption('#assessTeam',team);await p.selectOption('#assessArea',area);await p.waitForTimeout(280);};
+  await p.fill('#assessWeek',week);await p.selectOption('#assessTeam',team);await p.$eval('#assessArea',(el,v)=>{el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}))}, area);await p.waitForTimeout(280);};
 const mark=(p,agent,lvl)=>p.$eval(`#weeklyGrid [data-agent="${agent}"] .level-btn[data-level="${lvl}"]`,e=>e.click());
 const recs=(p,week,area)=>p.evaluate(([w,a])=>state.records.filter(r=>r.week===w&&(r.area||'')===a).map(r=>r.agent+':'+r.level).sort(),[week,area]);
 
-const W='2026-09-18', TEAM='Team Lipika', AREA='Objection Handling';
+const W='2026-09-18', TEAM='Team Lipika', AREA='Basic Real Estate KB';
 
 // ---------- A. partial save then a second partial save ----------
 {
