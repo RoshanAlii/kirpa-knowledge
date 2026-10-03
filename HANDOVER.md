@@ -30,7 +30,7 @@ Status: **one-week pilot**, deliberately temporary. Not a permanent system.
 The Sheet and Script live in Ali's **roshan@kirpaproperties.com** Google account. The web app runs
 as that account ("Execute as: Me", "Who has access: Anyone"), so team leaders never need Sheet access.
 
-Current versions: `index.html` **v2.3**, Apps Script deployment **Version 5**.
+Current versions: `index.html` **v2.4**, Apps Script deployment **Version 5**.
 
 ### Repo files
 | File | Purpose |
@@ -159,9 +159,14 @@ Each of these was a real bug found in testing. Do not "simplify" them away.
   "TL · <name>". Matching is exact, so "Priyanka Sunil" is unaffected by leader "Priyanka".
 - **Removing someone from rating**: Admin → Deactivate. Their records stay in the sheet and in
   their history modal; they simply leave the roster and the counts. Reactivate puts them back.
-- **The 11 Sep / 12 Sep merge** runs in `normalizeState()`, so it fixes the local copy *and*
-  anything pulled from the sheet, then `settleMigration()` writes the merged copy back once. It is
-  idempotent and a no-op once no `2026-09-11` record survives. Safe to delete after the pilot.
+- **Week merges** live in `WEEK_MERGES` in `index.html` as `[recorded under, shown as]` pairs:
+  11 Sep folds into 12 Sep (the paper pads were written over two days) and 28 Sep folds into
+  26 Sep (late entries for the 26 Sep test). They run in `normalizeState()`, so they fix the local
+  copy *and* anything pulled from the sheet, then `settleMigration()` writes the result back once.
+  Idempotent, and a no-op once no record carries a "from" date. **When both dates hold a score for
+  the same agent, the one entered LATER wins the level** - a late entry corrects a provisional one,
+  never the reverse - and a written comment is never traded for a blank one. Add a pair to fold
+  another split round; nothing else needs changing.
 
 ---
 

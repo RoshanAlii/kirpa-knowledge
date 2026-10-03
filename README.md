@@ -19,7 +19,8 @@ Hosted on GitHub Pages; shared data lives in a Google Sheet via a small Apps Scr
   (Poor 25% / Weak 50% / Good 75% / Very Good 100%)
 - Five knowledge areas: Objection Handling · Investment / ROI · Dubai Area & Market ·
   Project / Product · Sales Presentation. Plus the imported handwritten paper week (12 Sep 2026,
-  filled in on paper over 11-12 Sep and stored as one round).
+  filled in on paper over 11-12 Sep and stored as one round). Rounds split across two dates are
+  folded together by `WEEK_MERGES`; the later entry wins when both dates hold a score.
 - Dashboard: company score, level distribution, per-area scores, ranked training gaps, insights
 - **Previous-level memory**: when you assess a week, the button showing where that agent stood last
   time is outlined with a dashed border and captioned with the date, so movement is visible at the

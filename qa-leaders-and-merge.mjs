@@ -184,6 +184,68 @@ console.log('4. Deactivating an agent keeps their history');
   await p.context().close();
 }
 
+// ==========================================================
+console.log('5. Folding 28 Sep into 26 Sep (a late entry for the same test)');
+{
+  const ONE='Basic Real Estate KB';
+  store={rev:20,state:{
+    teams:[{name:'Team Saloni',leader:'Saloni',members:['Saloni','Ritika','Aasfa','Sahil Bedi']},
+           {name:'Team Kamal',leader:'Kamal',members:['Kamal','Sarv']}],
+    records:[
+      // scored on the 26th and NOT revisited - must survive untouched
+      {week:'2026-09-26',team:'Team Kamal',agent:'Sarv',area:ONE,level:2,comment:'on the day'},
+      // provisional on the 26th, real result entered on the 28th: the 28th wins
+      {week:'2026-09-26',team:'Team Saloni',agent:'Ritika',area:ONE,level:1,comment:''},
+      {week:'2026-09-28',team:'Team Saloni',agent:'Ritika',area:ONE,level:4,comment:'8/8. Great delivery.'},
+      // the late entry has no note, the earlier one does - keep the note
+      {week:'2026-09-26',team:'Team Saloni',agent:'Aasfa',area:ONE,level:1,comment:'keep this note'},
+      {week:'2026-09-28',team:'Team Saloni',agent:'Aasfa',area:ONE,level:3,comment:''},
+      // only entered on the 28th - must move across, not vanish
+      {week:'2026-09-28',team:'Team Saloni',agent:'Sahil Bedi',area:ONE,level:3,comment:'late only'}],
+    legacy:[],inactive:[],version:3},updatedAt:new Date().toISOString()};
+
+  const p=await open();
+  await p.waitForTimeout(2600);
+  const d=await p.evaluate(()=>{
+    const pick=(a)=>state.records.filter(r=>r.agent===a)
+      .map(r=>r.week+'|L'+r.level+'|'+(r.comment||''));
+    const dupes=[]; const seen=new Set();
+    state.records.forEach(r=>{const k=r.week+'|'+r.team+'|'+r.agent; if(seen.has(k))dupes.push(k); seen.add(k);});
+    return {weeks:[...new Set(state.records.map(r=>r.week))].sort(), n:state.records.length,
+            sarv:pick('Sarv'), ritika:pick('Ritika'), aasfa:pick('Aasfa'), bedi:pick('Sahil Bedi'), dupes};
+  });
+  check('no 2026-09-28 record survives', !d.weeks.includes('2026-09-28'), JSON.stringify(d.weeks));
+  check('6 rows across 2 collisions become 4', d.n===4, 'records='+d.n);
+  check('nothing is duplicated', d.dupes.length===0, JSON.stringify(d.dupes));
+  check('a score only entered on the 28th moves to the 26th',
+    d.bedi.join()==='2026-09-26|L3|late only', JSON.stringify(d.bedi));
+  check('THE RULE: the later entry wins the level',
+    d.ritika.join()==='2026-09-26|L4|8/8. Great delivery.', JSON.stringify(d.ritika));
+  check('a written note is never traded for a blank one',
+    d.aasfa.join()==='2026-09-26|L3|keep this note', JSON.stringify(d.aasfa));
+  check('a score that was not revisited is untouched',
+    d.sarv.join()==='2026-09-26|L2|on the day', JSON.stringify(d.sarv));
+
+  const sheetWeeks=[...new Set(store.state.records.map(r=>r.week))].sort();
+  check('the folded copy is pushed back to the sheet',
+    !sheetWeeks.includes('2026-09-28') && store.state.records.length===4 && store.rev>20,
+    'rev='+store.rev+' '+JSON.stringify(sheetWeeks));
+  await p.context().close();
+}
+
+// ==========================================================
+console.log('6. The top-right label names the company, not a person');
+{
+  store={rev:0,state:null,updatedAt:null};
+  const p=await open();
+  await p.waitForTimeout(1000);
+  const txt=(await p.textContent('.profile-meta')).replace(/\s+/g,' ').trim();
+  check('it reads "Kirpa Management"', txt==='Kirpa Management', JSON.stringify(txt));
+  check('no personal name is shown', !/Roshan/i.test(await p.textContent('.profile')), await p.textContent('.profile'));
+  check('the avatar matches the label', (await p.textContent('.avatar')).trim()==='KM');
+  await p.context().close();
+}
+
 console.log('');
 let pass=0,fail=0; res.forEach(r=>{r.c?pass++:fail++;console.log(`  ${r.c?'PASS':'FAIL'}  ${r.n}${r.d?'  -> '+r.d:''}`)});
 console.log(`\n==== ${pass} passed, ${fail} failed ====`);

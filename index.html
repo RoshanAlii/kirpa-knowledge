@@ -186,7 +186,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.3 · Paper baseline</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.4 · Paper baseline</div>
   </div>
 </aside>
 <main class="main">
@@ -196,7 +196,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <span id="syncPill" class="sync-pill off" title="Cloud sync status"><span class="sync-dot"></span><span id="syncPillText">Local only</span></span>
     <select id="weekFilter" class="filter-select week"></select>
     <select id="teamFilter" class="filter-select"></select>
-    <div class="profile"><div class="avatar">RA</div><div class="profile-meta"><strong>Roshan Ali</strong><span>Management</span></div></div>
+    <div class="profile"><div class="avatar">KM</div><div class="profile-meta"><strong>Kirpa Management</strong></div></div>
   </div>
 </header>
 <div class="content">
@@ -325,31 +325,44 @@ const LEGACY=[];
 const STORE='kirpaKnowledgeWeeklyBoard_v3';
 function deepClone(v){return JSON.parse(JSON.stringify(v))}
 function initialState(){return{teams:deepClone(DEFAULT_TEAMS),records:deepClone(DEFAULT_RECORDS),legacy:deepClone(LEGACY),inactive:[],version:3}}
-// --- one-time migration: 11 Sep and 12 Sep are a single round -----------
-// Leaders wrote the paper baseline across two days. Keeping them as separate
-// weeks made the dashboard compare a 30-agent week against a 2-agent week, so
-// every 11 Sep record is relabelled 12 Sep. This is idempotent - once no
-// 2026-09-11 record survives anywhere it does nothing - and it runs on the
-// local copy AND on anything pulled from the sheet, so a browser holding an
-// old cached copy cannot put the split week back.
-const MERGE_FROM='2026-09-11', MERGE_INTO='2026-09-12';
+// --- one-time migrations: rounds that were split across two dates -------
+// Each pair is [the date it was recorded under, the date it should show as].
+//   11 -> 12 Sep : leaders wrote the paper baseline across two days.
+//   28 -> 26 Sep : some results for the 26 Sep test were only entered on the
+//                  28th; they belong to the 26 Sep round.
+// Idempotent - once no record carries a "from" date this does nothing - and it
+// runs on the local copy AND on anything pulled from the sheet, so a browser
+// holding an old cached copy cannot put a split round back.
+const WEEK_MERGES=[['2026-09-11','2026-09-12'],['2026-09-28','2026-09-26']];
 let migrationPending=false;
-function mergePaperWeeks(v){
+function mergeWeeks(v){
   if(!v||!Array.isArray(v.records))return false;
-  if(!v.records.some(r=>r.week===MERGE_FROM))return false;
-  // A 12 Sep record for the same agent and area is the later note, so it wins;
-  // the 11 Sep one is dropped rather than duplicated. (On the live data there
-  // is no such collision - the two 12 Sep records are a different area.)
-  const seen=new Set(v.records.filter(r=>r.week===MERGE_INTO).map(r=>r.team+'|'+r.agent+'|'+(r.area||'')));
-  const out=[];
-  v.records.forEach(r=>{
-    if(r.week!==MERGE_FROM){out.push(r);return}
-    const k=r.team+'|'+r.agent+'|'+(r.area||'');
-    if(seen.has(k))return;
-    seen.add(k); r.week=MERGE_INTO; out.push(r);
+  let changed=false;
+  WEEK_MERGES.forEach(function(pair){
+    const from=pair[0], into=pair[1];
+    if(!v.records.some(r=>r.week===from))return;
+    changed=true;
+    // When both dates hold a score for the same agent and area, the one entered
+    // LATER wins: a late entry corrects an earlier provisional one, never the
+    // other way round. ISO dates compare correctly as strings.
+    const kept=new Map(), out=[];
+    v.records.forEach(r=>{
+      if(r.week!==from && r.week!==into){ out.push(r); return; }
+      const k=r.team+'|'+r.agent+'|'+(r.area||''), cameFrom=r.week;
+      const prior=kept.get(k);
+      if(!prior){ kept.set(k,{rec:r,week:cameFrom}); r.week=into; out.push(r); return; }
+      if(cameFrom>prior.week){
+        prior.rec.level=r.level;
+        // never trade a written note for a blank one
+        if((r.comment||'').trim()) prior.rec.comment=r.comment;
+        prior.week=cameFrom;
+      }else if((r.comment||'').trim() && !(prior.rec.comment||'').trim()){
+        prior.rec.comment=r.comment;
+      }
+    });
+    v.records=out;
   });
-  v.records=out;
-  return true;
+  return changed;
 }
 // --- one-time migration: collapse the old categories into one ----------
 // Scores were filed under five category names plus the paper import, but every
@@ -387,7 +400,7 @@ function normalizeState(v){
   v.records=v.records.map(r=>({...r,area:r.area||LEGACY_AREA}));
   v.legacy=(v.legacy||[]).map(r=>({...r,area:r.area||LEGACY_AREA}));
   v.inactive=v.inactive||[]; v.version=3;
-  if(mergePaperWeeks(v)) migrationPending=true;
+  if(mergeWeeks(v)) migrationPending=true;
   if(collapseAreas(v)) migrationPending=true;
   return v;
 }
