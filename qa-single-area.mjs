@@ -211,6 +211,33 @@ console.log('4. A reload does not fold CRM back into KB');
   await p.context().close();
 }
 
+// ==========================================================
+console.log('5. Per-area counts never exceed the roster');
+{
+  const ONE='Basic Real Estate KB';
+  store={rev:40,state:{
+    teams:[{name:'Team Saloni',leader:'Saloni',members:['Saloni','Ritika','Aasfa']},
+           {name:'Team Lipika',leader:'Lipika',members:['Lipika','Kirti']}],
+    records:[
+      {week:'2026-09-26',team:'Team Saloni',agent:'Ritika',area:ONE,level:4,comment:''},   // counts
+      {week:'2026-09-26',team:'Team Lipika',agent:'Kirti',area:ONE,level:2,comment:''},    // counts
+      {week:'2026-09-26',team:'Team Saloni',agent:'Aasfa',area:ONE,level:1,comment:''},    // deactivated - must not count
+      {week:'2026-09-26',team:'Team Lipika',agent:'Ritika',area:ONE,level:1,comment:''},   // filed under the wrong team - must not count
+      {week:'2026-09-26',team:'Team Saloni',agent:'Saloni',area:ONE,level:1,comment:''}],  // team leader - must not count
+    legacy:[],inactive:['Team Saloni|Aasfa'],version:3},updatedAt:new Date().toISOString()};
+  const p=await open();
+  await p.waitForTimeout(2400);
+  await p.evaluate(()=>{document.getElementById('weekFilter').value='2026-09-26';renderAll();setView('dashboard');});
+  await p.waitForTimeout(300);
+  const row=await p.$$eval('#teamScores .area-row',rs=>{const r=rs.find(x=>/Basic Real Estate KB/.test(x.textContent));
+    return r?{n:r.querySelector('.area-n').textContent,score:r.querySelector('b').textContent}:null;});
+  const headline=await p.evaluate(()=>companyScore('2026-09-26','ALL'));
+  check('the area count is only rated agents (2 of 2)', row && row.n==='2/2', JSON.stringify(row));
+  check('the area score matches the headline score when one area has data',
+    row && row.score===headline+'%', JSON.stringify(row)+' headline='+headline);
+  await p.context().close();
+}
+
 console.log('');
 let pass=0,fail=0; res.forEach(r=>{r.c?pass++:fail++;console.log(`  ${r.c?'PASS':'FAIL'}  ${r.n}${r.d?'  -> '+r.d:''}`)});
 console.log(`\n==== ${pass} passed, ${fail} failed ====`);

@@ -456,7 +456,17 @@ function renderDashboard(){
   renderDistribution(count);renderAreaScores(week,team);renderGaps(week,team);renderLevels(summ);renderInsights(week,team,summ);
 }
 function renderDistribution(count){const mx=Math.max(5,...Object.values(count));document.getElementById('yMax').textContent=mx;const spec=[[1,'Poor','red'],[2,'Weak','orange'],[3,'Good','yellow'],[4,'Very Good','green']];document.getElementById('distributionBars').innerHTML=spec.map(([l,n,c])=>`<div class="barwrap"><div class="barvalue">${count[l]}</div><div class="bar ${c}" style="height:${Math.max(2,Math.round(count[l]/mx*110))}px"></div><span class="xlabel">${n}</span></div>`).join('')}
-function areaStats(week,team='ALL'){return AREAS.map(area=>{const rs=state.records.filter(r=>r.week===week&&(team==='ALL'||r.team===team)&&r.area===area&&r.level);return{area,score:rs.length?avgNum(rs.map(r=>SCORES[r.level])):null,count:rs.length}})}
+// Only agents actually being rated count: a deactivated agent, a team leader,
+// or a record filed under a team the agent is not on must not inflate an area
+// past its own roster (the dashboard once read "37/32"), and must not pull the
+// area score away from the headline score, which already uses this rule.
+function areaStats(week,team='ALL'){
+  const active=new Set(activeMembers(team).map(m=>m.team+'|'+m.agent));
+  return AREAS.map(area=>{
+    const rs=state.records.filter(r=>r.week===week&&r.area===area&&r.level&&active.has(r.team+'|'+r.agent));
+    return{area,score:rs.length?avgNum(rs.map(r=>SCORES[r.level])):null,count:rs.length};
+  });
+}
 function renderAreaScores(week,team){
   const roster=activeMembers(team).length;
   document.getElementById('teamScores').innerHTML=areaStats(week,team).map(x=>{
