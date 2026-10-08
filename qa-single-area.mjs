@@ -1,7 +1,10 @@
-// Collapsing the five knowledge categories + the paper import into one area.
-// The risk is duplication: a record is keyed by (week, team, agent, area), so
-// two agents who were scored twice in one week under two different category
-// names must end up with ONE record, not two. Mirrors the live data shape.
+// Knowledge areas.
+//  1. The five retired categories + the paper import collapse into Basic Real
+//     Estate KB without duplicating (two agents were scored twice in one week
+//     under two retired names - they must end up with ONE record).
+//  2. CRM Usage is a real second area: its scores must NEVER be folded into
+//     KB, and a KB score and a CRM score for the same agent and week are two
+//     separate records. (The first version of the collapse got this wrong.)
 import pw from '/home/claude/.npm-global/lib/node_modules/playwright/index.js'; const { chromium } = pw;
 import http from 'http'; import fs from 'fs';
 
@@ -83,7 +86,8 @@ console.log('\n1. Collapsing the categories');
   });
   check('only one knowledge area is left', Object.keys(d.areas).length===1 && d.areas['Basic Real Estate KB']===7,
     JSON.stringify(d.areas));
-  check('AREAS is the single area', d.areasConst.length===1 && d.areasConst[0]==='Basic Real Estate KB', JSON.stringify(d.areasConst));
+  check('AREAS is Basic Real Estate KB + CRM Usage',
+    JSON.stringify(d.areasConst)===JSON.stringify(['Basic Real Estate KB','CRM Usage']), JSON.stringify(d.areasConst));
   check('NOTHING is duplicated', d.dupes.length===0, JSON.stringify(d.dupes));
   check('10 rows across 3 collisions collapse to 7', d.n===7, 'records='+d.n);
   check('an agent scored twice at the same level keeps that level', d.ameer && d.ameer.level===3, JSON.stringify(d.ameer));
@@ -108,39 +112,102 @@ console.log('\n1. Collapsing the categories');
 }
 
 // ==========================================================
-console.log('2. The area picker is gone but scoring still works');
+console.log('2. Retired names collapse; CRM Usage is never touched');
+{
+  const ONE='Basic Real Estate KB', CRM='CRM Usage';
+  store={rev:30,state:{
+    teams:[{name:'Team Lipika',leader:'Lipika',members:['Lipika','Kirti','Sadaf']}],
+    records:[
+      // THE BUG THIS GUARDS: same agent, same week, a retired KB-ish score AND a
+      // CRM score. The retired one must fold into KB; the CRM one must survive
+      // as its own record, not be merged into the KB one.
+      {week:'2026-10-03',team:'Team Lipika',agent:'Kirti',area:'Objection Handling',level:2,comment:'old category'},
+      {week:'2026-10-03',team:'Team Lipika',agent:'Kirti',area:CRM,level:4,comment:'crm note'},
+      // a plain CRM score with nothing else around it
+      {week:'2026-10-03',team:'Team Lipika',agent:'Sadaf',area:CRM,level:1,comment:''}],
+    legacy:[],inactive:[],version:3},updatedAt:new Date().toISOString()};
+  const p=await open();
+  await p.waitForTimeout(2600);
+  const d=await p.evaluate(()=>({
+    kirti:state.records.filter(r=>r.agent==='Kirti').map(r=>r.area+'|L'+r.level+'|'+r.comment).sort(),
+    sadaf:state.records.filter(r=>r.agent==='Sadaf').map(r=>r.area+'|L'+r.level)}));
+  check('a retired category folds into KB', d.kirti.includes('Basic Real Estate KB|L2|old category'), JSON.stringify(d.kirti));
+  check('a CRM score beside it is NOT folded into KB', d.kirti.includes('CRM Usage|L4|crm note'), JSON.stringify(d.kirti));
+  check('so that agent keeps two records, one per area', d.kirti.length===2, JSON.stringify(d.kirti));
+  check('a lone CRM score is untouched', d.sadaf.join()==='CRM Usage|L1', JSON.stringify(d.sadaf));
+  await p.context().close();
+}
+
+// ==========================================================
+console.log('3. Scoring CRM Usage end to end');
 {
   store={rev:0,state:null,updatedAt:null};
   const p=await open();
   await p.waitForTimeout(1200);
   await p.evaluate(()=>setView('assess')); await p.waitForTimeout(400);
-  check('the Knowledge area picker is hidden', await p.isHidden('#assessAreaField'));
-  check('the per-area dashboard panels are hidden',
-    await p.isHidden('#teamScores') && await p.isHidden('#trainingGaps'));
-  check('the assess screen no longer tells you to pick an area',
-    !/knowledge area first/i.test(await p.textContent('#view-assess')));
+  check('the Knowledge area picker is visible again', await p.isVisible('#assessAreaField'));
+  const opts=await p.$$eval('#assessArea option',os=>os.map(o=>o.value+'='+o.textContent));
+  check('the picker lists exactly the two areas, once each',
+    JSON.stringify(opts)===JSON.stringify(['Basic Real Estate KB=Basic Real Estate KB','CRM Usage=CRM Usage']), JSON.stringify(opts));
+  check('KB is the default area', (await p.inputValue('#assessArea'))==='Basic Real Estate KB');
 
+  // score Kirti in both areas for the same week
   await p.fill('#assessWeek','2026-10-03');
-  await p.selectOption('#assessTeam','Team Lipika'); await p.waitForTimeout(350);
+  await p.selectOption('#assessTeam','Team Lipika'); await p.waitForTimeout(300);
   await p.$eval('#weeklyGrid [data-agent="Kirti"] .level-btn[data-level="4"]',e=>e.click());
-  await p.$eval('#weeklyGrid [data-agent="Kirti"] .comment-input',e=>{e.value='scored with no picker';e.dispatchEvent(new Event('input',{bubbles:true}))});
   await p.click('#saveWeekBtn'); await p.waitForTimeout(2500);
-  // an empty sheet rejects the first patch ("nothing stored yet"); the app then
-  // falls back to a full push, so give that round trip room before asserting
   for(let i=0;i<20 && !store.state;i++) await p.waitForTimeout(500);
-  const saved=await p.evaluate(()=>state.records.filter(r=>r.week==='2026-10-03'));
-  check('a score saves into the single area',
-    saved.length===1 && saved[0].area==='Basic Real Estate KB' && saved[0].level===4, JSON.stringify(saved));
-  check('the comment saves with it', saved[0] && saved[0].comment==='scored with no picker', JSON.stringify(saved[0]));
-  check('it reached the sheet', !!store.state && store.state.records.some(r=>r.week==='2026-10-03'&&r.level===4), store.state?'':'sheet still empty');
-
-  // the "last time" marker is the whole point of the board - it must survive
   await p.evaluate(()=>setView('assess'));
-  await p.fill('#assessWeek','2026-10-10'); await p.waitForTimeout(400);
-  const tag=await p.$eval('#weeklyGrid [data-agent="Kirti"]',e=>{
-    const t=e.querySelector('.prev-tag'); return t?t.textContent.trim():'NONE';});
-  check('the "last time" marker still works with one area', /Last time/.test(tag), tag);
-  check('the marker does not name an area any more', !/\(/.test(tag), tag);
+  await p.fill('#assessWeek','2026-10-03');
+  await p.selectOption('#assessTeam','Team Lipika');
+  await p.selectOption('#assessArea','CRM Usage'); await p.waitForTimeout(350);
+  const prog=await p.textContent('#areaProgress');
+  check('per-area progress names the area', /for CRM/.test(prog), prog);
+  check('the KB score does not show as selected in the CRM grid',
+    await p.$eval('#weeklyGrid [data-agent="Kirti"]',e=>!e.querySelector('.level-btn.selected')));
+  await p.$eval('#weeklyGrid [data-agent="Kirti"] .level-btn[data-level="2"]',e=>e.click());
+  await p.$eval('#weeklyGrid [data-agent="Kirti"] .comment-input',e=>{e.value='forgets to log calls';e.dispatchEvent(new Event('input',{bubbles:true}))});
+  await p.click('#saveWeekBtn'); await p.waitForTimeout(3000);
+
+  const local=await p.evaluate(()=>state.records.filter(r=>r.agent==='Kirti'&&r.week==='2026-10-03').map(r=>r.area+'|L'+r.level).sort());
+  check('KB and CRM are two separate records', JSON.stringify(local)===JSON.stringify(['Basic Real Estate KB|L4','CRM Usage|L2']), JSON.stringify(local));
+  const sheet=(store.state&&store.state.records||[]).filter(r=>r.agent==='Kirti'&&r.week==='2026-10-03').map(r=>r.area+'|L'+r.level).sort();
+  check('both reached the sheet', JSON.stringify(sheet)===JSON.stringify(['Basic Real Estate KB|L4','CRM Usage|L2']), JSON.stringify(sheet));
+  const score=await p.evaluate(()=>agentSummaries('2026-10-03','Team Lipika').find(x=>x.agent==='Kirti').score);
+  check('the agent\'s weekly score averages the two areas (100+50)/2', score===75, 'score='+score);
+
+  // the labels that used to say "Paper"
+  await p.evaluate(()=>setView('agents')); await p.waitForTimeout(300);
+  const cell=await p.$$eval('#agentsBody tr',rs=>{const r=rs.find(x=>x.children[0].textContent==='Kirti');return r?r.children[4].textContent:'';});
+  check('the Agents table labels the comment with its area', /^CRM: forgets to log calls$/.test(cell), cell);
+  check('nothing is labelled "Paper" any more', !/Paper/.test(await p.textContent('#view-agents')));
+
+  await p.evaluate(()=>setView('dashboard')); await p.waitForTimeout(300);
+  check('the per-area dashboard panels are back (checked ON the dashboard)',
+    await p.isVisible('#teamScores') && await p.isVisible('#trainingGaps'));
+  const rows=await p.$$eval('#teamScores .area-row',rs=>rs.length);
+  check('one dashboard row per area', rows===2, 'rows='+rows);
+  await p.context().close();
+}
+
+// ==========================================================
+console.log('4. A reload does not fold CRM back into KB');
+{
+  // a fresh browser pulls the sheet left behind by section 3
+  const p=await open();
+  await p.waitForTimeout(2600);
+  const after=await p.evaluate(()=>state.records.filter(r=>r.agent==='Kirti'&&r.week==='2026-10-03').map(r=>r.area+'|L'+r.level).sort());
+  check('both records survive a fresh load from the sheet',
+    JSON.stringify(after)===JSON.stringify(['Basic Real Estate KB|L4','CRM Usage|L2']), JSON.stringify(after));
+  // next week, CRM grid: the "last time" marker must come from the CRM score
+  await p.evaluate(()=>setView('assess'));
+  await p.fill('#assessWeek','2026-10-10');
+  await p.selectOption('#assessTeam','Team Lipika');
+  await p.selectOption('#assessArea','CRM Usage'); await p.waitForTimeout(400);
+  const prev=await p.$eval('#weeklyGrid [data-agent="Kirti"]',e=>({lvl:(e.querySelector('.level-btn.prev')||{}).textContent,
+    tag:(e.querySelector('.prev-tag')||{}).textContent}));
+  check('the CRM grid marks last week\'s CRM level, not the KB one', prev.lvl==='Weak', JSON.stringify(prev));
+  check('and needs no area label since it is the same area', !/\(/.test(prev.tag||''), JSON.stringify(prev));
   await p.context().close();
 }
 

@@ -30,7 +30,7 @@ Status: **one-week pilot**, deliberately temporary. Not a permanent system.
 The Sheet and Script live in Ali's **roshan@kirpaproperties.com** Google account. The web app runs
 as that account ("Execute as: Me", "Who has access: Anyone"), so team leaders never need Sheet access.
 
-Current versions: `index.html` **v2.4**, Apps Script deployment **Version 5**.
+Current versions: `index.html` **v2.5**, Apps Script deployment **Version 5**.
 
 ### Repo files
 | File | Purpose |
@@ -46,7 +46,7 @@ Current versions: `index.html` **v2.4**, Apps Script deployment **Version 5**.
 | `qa-amend-past-week.mjs` | Correcting a rating in a past week |
 | `qa-leaders-and-merge.mjs` | The 11-into-12 Sep week merge and the team-leader exclusion |
 | `qa-ui-audit.mjs` | Layout audit - clipped text, overflow, tap targets, across 7 views x 6 widths |
-| `qa-single-area.mjs` | The collapse of the five categories into one |
+| `qa-single-area.mjs` | Category collapse, and CRM Usage staying a separate area |
 
 Run any suite with `node <file>.mjs` (needs `npm i playwright && npx playwright install chromium`).
 They spin up a local copy of `index.html` plus a mock Apps Script — **nothing touches the live sheet.**
@@ -71,11 +71,19 @@ state = {
 - **No record means not assessed.** Absentees are simply absent — never a zero.
 - Agent score = mean of their area scores that week. Company score = mean over **assessed** agents.
 
-Areas: **one** - `Basic Real Estate KB`. The board originally carried five categories plus a
-paper-import area, but every assessment ever recorded was the same basic real-estate test, so
-they were collapsed into one on 26 Sep. `AREAS` in `index.html` is still a list: add entries and
-per-area scoring, the area picker and the two per-area dashboard panels all come back on their
-own. Nothing else is hard-coded to a single area.
+Areas: **two** - `Basic Real Estate KB` and `CRM Usage` (added 8 Oct). The board originally
+carried five categories plus a paper-import area; every assessment recorded under them was the
+same basic test, so on 26 Sep they were collapsed into Basic Real Estate KB. `AREAS` in
+`index.html` drives everything: the picker, per-area progress, the two per-area dashboard panels
+and area labels all appear when it has more than one entry and hide when it has one.
+
+**Adding an area is one line in `AREAS`.** The collapse migration only ever touches the names in
+`RETIRED_AREAS`, and its dedupe key includes the area - so a new area's scores are never folded
+into KB. (The first version of the collapse treated *anything* other than `AREAS[0]` as retired
+and keyed by week+agent only; adding CRM Usage to it naively would have merged each agent's CRM
+and KB scores into one record. `qa-single-area.mjs` section 2 fails on that version.)
+An agent's weekly score is the mean of their area scores that week, so CRM Usage now counts
+toward the headline knowledge score.
 
 ### Sheet tabs
 - `_state` — A1 holds `{rev, updatedAt, chunks}`; A2 down holds the JSON state in 40k-char chunks

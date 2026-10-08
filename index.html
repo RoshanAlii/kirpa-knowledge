@@ -186,7 +186,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.4 · Paper baseline</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.5 · Paper baseline</div>
   </div>
 </aside>
 <main class="main">
@@ -276,7 +276,7 @@ const SCORES={1:25,2:50,3:75,4:100};
 // for anything other than that one test. Adding entries back to this list is
 // all it takes to bring per-area scoring (and the two per-area dashboard
 // panels) back - nothing else is hard-coded to one area.
-const AREAS=['Basic Real Estate KB'];
+const AREAS=['Basic Real Estate KB','CRM Usage'];
 const LEGACY_AREA=AREAS[0];
 const DEFAULT_TEAMS=[
 {name:'Team Lipika',leader:'Lipika',members:['Lipika','Priyanka Sunil','Kirti','Sadaf','Sukhpreet']},
@@ -373,20 +373,26 @@ function mergeWeeks(v){
 // single area with no duplicates, and it runs on the local copy AND on anything
 // pulled from the sheet, so a stale browser cannot reintroduce the old areas.
 let areaMigrationPending=false;
+// The five category names (and the paper import) that were retired on 26 Sep.
+// Only these are ever folded; any area currently in AREAS is left alone. The
+// target is named outright rather than AREAS[0], so reordering AREAS later can
+// never redirect old data into the wrong area.
+const RETIRED_AREAS=['Objection Handling','Investment / ROI Knowledge','Dubai Area & Market Knowledge',
+  'Project / Product Knowledge','Sales Presentation / Pitch','Overall / General Knowledge (Imported Paper)'];
+const RETIRED_INTO='Basic Real Estate KB';
 function collapseAreas(v){
   if(!v||!Array.isArray(v.records))return false;
-  const ONE=AREAS[0];
-  const needsWork=v.records.some(r=>(r.area||'')!==ONE);
-  if(!needsWork)return false;
-  const byAgentWeek=new Map();
-  const out=[];
+  if(!v.records.some(r=>RETIRED_AREAS.includes(r.area)))return false;
+  // the key INCLUDES the area: a CRM Usage score and a KB score for the same
+  // agent in the same week are two separate records and must stay that way
+  const kept=new Map(), out=[];
   v.records.forEach(r=>{
-    r.area=ONE;
-    const k=r.week+'|'+r.team+'|'+r.agent;
-    const prior=byAgentWeek.get(k);
-    if(!prior){ byAgentWeek.set(k,r); out.push(r); return; }
-    // same agent, same week, two old categories -> one record. Keep the higher
-    // level so a score is never silently lowered, and keep both comments.
+    if(RETIRED_AREAS.includes(r.area)) r.area=RETIRED_INTO;
+    const k=r.week+'|'+r.team+'|'+r.agent+'|'+r.area;
+    const prior=kept.get(k);
+    if(!prior){ kept.set(k,r); out.push(r); return; }
+    // two retired categories for one agent in one week -> one record. Keep the
+    // higher level so a score is never silently lowered, and keep both notes.
     if(r.level>prior.level) prior.level=r.level;
     const notes=[prior.comment,r.comment].map(c=>(c||'').trim()).filter(Boolean);
     prior.comment=[...new Set(notes)].join(' · ');
@@ -436,7 +442,7 @@ function setupSelectors(){
   document.getElementById('teamFilter').innerHTML=teams.map(t=>`<option value="${esc(t)}">${t==='ALL'?'All Teams':esc(t)}</option>`).join('');
   document.getElementById('agentTeamFilter').innerHTML=teams.map(t=>`<option value="${esc(t)}">${t==='ALL'?'All Teams':esc(t)}</option>`).join('');
   document.getElementById('assessTeam').innerHTML=state.teams.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
-  document.getElementById('assessArea').innerHTML=[...AREAS,LEGACY_AREA].map(a=>`<option value="${esc(a)}">${esc(areaLabel(a))}</option>`).join('');
+  document.getElementById('assessArea').innerHTML=AREAS.map(a=>`<option value="${esc(a)}">${esc(areaLabel(a))}</option>`).join('');
   document.getElementById('newAgentTeam').innerHTML=state.teams.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
 }
 function renderDashboard(){
@@ -468,9 +474,9 @@ function renderInsights(week,team,summ){
   document.getElementById('insightGrid').innerHTML=`<div class="insight-card"><div class="insight-head att">Needs Attention<span class="view" data-insight="att">View all</span></div>${rows(needs,'score')}</div><div class="insight-card"><div class="insight-head imp">Most Improved<span class="view">View all</span></div>${rows(improved,'move')}</div><div class="insight-card"><div class="insight-head dec">Declining<span class="view">View all</span></div>${rows(declining,'move')}</div><div class="insight-card"><div class="insight-head recent">No Recent Assessment<span class="view">View all</span></div>${rows(missing,'miss')}</div>`;
 }
 function prepareAssessment(){const week=selectedWeek(),team=selectedTeam()==='ALL'?state.teams[0].name:selectedTeam();document.getElementById('assessWeek').value=week;document.getElementById('assessTeam').value=team;document.getElementById('assessArea').value=AREAS[0];renderAssessmentGrid()}
-const AREA_SHORT={'Objection Handling':'Objection','Investment / ROI Knowledge':'ROI','Dubai Area & Market Knowledge':'Market','Project / Product Knowledge':'Product','Sales Presentation / Pitch':'Pitch'};
-function shortArea(a){return AREA_SHORT[a]||(a===LEGACY_AREA?'Paper':a)}
-function areaLabel(a){return a===LEGACY_AREA?'Overall / General (paper import)':a}
+const AREA_SHORT={'Basic Real Estate KB':'Basic KB','CRM Usage':'CRM','Objection Handling':'Objection','Investment / ROI Knowledge':'ROI','Dubai Area & Market Knowledge':'Market','Project / Product Knowledge':'Product','Sales Presentation / Pitch':'Pitch'};
+function shortArea(a){return AREA_SHORT[a]||a}
+function areaLabel(a){return a}   // LEGACY_AREA is a real area now (Basic Real Estate KB), not the paper import
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function shortDate(w){const d=new Date(w+'T12:00:00');return isNaN(d)?w:d.getDate()+' '+MON[d.getMonth()]}
 function previousRecordFor(week,team,agent,area){
@@ -520,7 +526,7 @@ function renderAreaProgress(week,team,area,roster){
                    : ' · <span class="missing">whole team covered</span>');
 }
 function saveWeeklyAssessment(){const week=document.getElementById('assessWeek').value,team=document.getElementById('assessTeam').value,area=document.getElementById('assessArea').value;if(!week)return alert('Select a week ending date.');if(!area)return alert('Select a knowledge area.');const rows=[...document.querySelectorAll('#weeklyGrid .assessment-person')];let saved=0;rows.forEach(row=>{const agent=row.dataset.agent,sel=row.querySelector('.level-btn.selected'),comment=row.querySelector('.comment-input').value.trim(),existing=exactRecord(week,team,agent,area);if(sel){const level=Number(sel.dataset.level);if(existing){existing.level=level;existing.comment=comment}else state.records.push({week,team,agent,area,level,comment});saved++}else if(existing){state.records=state.records.filter(r=>r!==existing)}});saveState();setupSelectors();document.getElementById('weekFilter').value=week;document.getElementById('teamFilter').value=team;renderAll();toast(`${saved} ${area} assessment${saved===1?'':'s'} saved for ${team}`);setView('dashboard')}
-function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?`${shortArea(r.area)}: ${r.comment}`:'—'}
+function latestComment(summary){if(!summary?.records?.length)return'—';const r=[...summary.records].reverse().find(x=>x.comment);return r?(AREAS.length>1?`${shortArea(r.area)}: `:'')+r.comment:'—'}
 function renderAgents(){const week=selectedWeek(),team=document.getElementById('agentTeamFilter').value||'ALL',lvl=document.getElementById('agentLevelFilter').value,q=(document.getElementById('agentSearch').value||'').trim().toLowerCase();let rows=agentSummaries(week,team).filter(x=>!q||x.agent.toLowerCase().includes(q));if(lvl==='NA')rows=rows.filter(x=>!x.assessed);else if(/^\d$/.test(lvl))rows=rows.filter(x=>x.assessed&&x.level===Number(lvl));else if(lvl==='REVIEW'){const pw=prevWeek(week);const prevMap=new Map((pw?agentSummaries(pw,team):[]).filter(x=>x.assessed).map(x=>[x.team+'|'+x.agent,x.score]));rows=rows.filter(x=>{if(!x.assessed)return false;const ps=prevMap.get(x.team+'|'+x.agent);return ps!==undefined&&x.score<ps});}document.getElementById('agentsBody').innerHTML=rows.map(x=>`<tr><td><span class="agent-link" data-agent="${esc(x.agent)}" data-team="${esc(x.team)}">${esc(x.agent)}</span></td><td>${esc(x.team)}</td><td>${x.assessed?`<span class="badge b${x.level}">${LEVELS[x.level]}</span>`:'<span class="badge b0">Not assessed</span>'}</td><td>${x.assessed?x.score+'%':'—'}</td><td>${esc(latestComment(x))}</td><td>${fmtWeek(week).replace('Week ending: ','')}</td></tr>`).join('')}
 function renderTeams(){const week=selectedWeek();document.getElementById('teamGrid').innerHTML=state.teams.map(t=>{const members=activeMembers(t.name),summ=agentSummaries(week,t.name),ass=summ.filter(x=>x.assessed),score=avgNum(ass.map(x=>x.score));return`<div class="panel team-card" data-team-card="${esc(t.name)}"><div style="font-size:10px;letter-spacing:.1em;color:#9a7862;text-transform:uppercase">${members.length} members</div><h3>${esc(t.name)}</h3><div class="tl">TL · ${esc(t.leader)}</div><div style="margin-top:14px">${ass.length?`<span class="score-big">${score}%</span>`:'<span class="score-none">Not assessed yet</span>'}<div style="font-size:11px;color:#8590a0">${ass.length} of ${members.length} assessed · ${fmtWeek(week)}</div></div><div class="team-members">${summ.map(m=>`<div class="team-person"><span>${esc(m.agent)}${m.agent===t.leader?' <small style="color:#9a7862">(TL)</small>':''}</span><span>${m.assessed?LEVELS[m.level]:'—'}</span></div>`).join('')}</div></div>`}).join('')}
 function renderReports(){const weeks=allWeeks().slice().sort().reverse();document.getElementById('weeklyReportBody').innerHTML=weeks.map(w=>{const members=activeMembers('ALL'),s=agentSummaries(w,'ALL'),a=s.filter(x=>x.assessed),c={1:0,2:0,3:0,4:0};a.forEach(x=>c[x.level]++);return`<tr><td>${fmtWeek(w).replace('Week ending: ','')}</td><td>${a.length}</td><td>${pct(a.length,members.length)}%</td><td>${avgNum(a.map(x=>x.score))}%</td><td>${c[1]}</td><td>${c[2]}</td><td>${c[3]}</td><td>${c[4]}</td></tr>`}).join('');const w=selectedWeek();document.getElementById('teamReportBody').innerHTML=state.teams.map(t=>{const m=activeMembers(t.name),a=agentSummaries(w,t.name).filter(x=>x.assessed);return`<tr><td>${esc(t.name)}</td><td>${m.length}</td><td>${a.length}</td><td>${pct(a.length,m.length)}%</td><td>${a.length?avgNum(a.map(x=>x.score))+'%':'—'}</td></tr>`}).join('');const a=agentSummaries(w,'ALL').filter(x=>x.assessed),members=activeMembers('ALL');document.getElementById('reportKpis').innerHTML=`<div class="kpi"><span>Active Agents</span><strong>${members.length}</strong></div><div class="kpi"><span>Assessed</span><strong>${a.length}</strong></div><div class="kpi"><span>Coverage</span><strong>${pct(a.length,members.length)}%</strong></div><div class="kpi"><span>Knowledge Score</span><strong>${avgNum(a.map(x=>x.score))}%</strong></div>`}
@@ -540,6 +546,9 @@ function applyAreaChrome(){
     if(card) card.classList.toggle('hidden',single);
   });
   const mid=document.querySelector('.midgrid'); if(mid) mid.classList.toggle('one-area',single);
+  const sub=document.querySelector('#view-assess .page-head p');
+  if(sub) sub.textContent=single?'Score every agent on the team for the selected week.'
+                                :'Pick the knowledge area, then score every agent on the team for the selected week.';
   document.querySelector('.form-row')&&document.querySelector('.form-row').classList.toggle('one-area',single);
 }
 setupSelectors();applyAreaChrome();document.getElementById('weekFilter').value=allWeeks()[0];document.getElementById('teamFilter').value='ALL';document.getElementById('agentTeamFilter').value='ALL';renderAll();
