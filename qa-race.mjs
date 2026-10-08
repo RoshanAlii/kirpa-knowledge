@@ -84,7 +84,7 @@ await p.selectOption('#teamFilter',TM); await p.waitForTimeout(400);
 const areaCounts=await p.$$eval('#teamScores .area-row',rs=>rs.map(r=>r.querySelector('.area-n').textContent));
 check('dashboard area rows show assessed-per-area', areaCounts[0]==='2/4', JSON.stringify(areaCounts));
 const cov=await p.textContent('#coverageText');
-check('the company coverage figure is labelled as week-level', /any area/.test(cov), cov);
+check('the company coverage figure names the area it covers', /in Basic Real Estate KB/.test(cov), cov);
 
 console.log('');
 let pass=0,fail=0; res.forEach(r=>{r.c?pass++:fail++;console.log(`  ${r.c?'PASS':'FAIL'}  ${r.n}${r.d?'  -> '+r.d:''}`)});

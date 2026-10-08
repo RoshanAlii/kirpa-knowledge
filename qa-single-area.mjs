@@ -155,6 +155,7 @@ console.log('3. Scoring CRM Usage end to end');
   await p.fill('#assessWeek','2026-10-03');
   await p.selectOption('#assessTeam','Team Lipika'); await p.waitForTimeout(300);
   await p.$eval('#weeklyGrid [data-agent="Kirti"] .level-btn[data-level="4"]',e=>e.click());
+  await p.$eval('#weeklyGrid [data-agent="Sadaf"] .level-btn[data-level="3"]',e=>e.click());   // KB only - see section 4
   await p.click('#saveWeekBtn'); await p.waitForTimeout(2500);
   for(let i=0;i<20 && !store.state;i++) await p.waitForTimeout(500);
   await p.evaluate(()=>setView('assess'));
@@ -173,14 +174,40 @@ console.log('3. Scoring CRM Usage end to end');
   check('KB and CRM are two separate records', JSON.stringify(local)===JSON.stringify(['Basic Real Estate KB|L4','CRM Usage|L2']), JSON.stringify(local));
   const sheet=(store.state&&store.state.records||[]).filter(r=>r.agent==='Kirti'&&r.week==='2026-10-03').map(r=>r.area+'|L'+r.level).sort();
   check('both reached the sheet', JSON.stringify(sheet)===JSON.stringify(['Basic Real Estate KB|L4','CRM Usage|L2']), JSON.stringify(sheet));
-  const score=await p.evaluate(()=>agentSummaries('2026-10-03','Team Lipika').find(x=>x.agent==='Kirti').score);
-  check('the agent\'s weekly score averages the two areas (100+50)/2', score===75, 'score='+score);
+  // SEPARATE, NOT BLENDED: CRM never moves the Basic Real Estate KB figures
+  check('saving a CRM round lands on the CRM board', (await p.inputValue('#areaFilter'))==='CRM Usage');
+  const sep=await p.evaluate(()=>({
+    kb:agentSummaries('2026-10-03','Team Lipika','Basic Real Estate KB').find(x=>x.agent==='Kirti').score,
+    crm:agentSummaries('2026-10-03','Team Lipika','CRM Usage').find(x=>x.agent==='Kirti').score,
+    kbHead:companyScore('2026-10-03','ALL','Basic Real Estate KB'),
+    crmHead:companyScore('2026-10-03','ALL','CRM Usage')}));
+  check('KB score is the KB score alone (Very Good = 100)', sep.kb===100, JSON.stringify(sep));
+  check('CRM score is the CRM score alone (Weak = 50)', sep.crm===50, JSON.stringify(sep));
+  // Kirti KB 100 + Sadaf KB 75 -> 88. Blended with Kirti's CRM 50 it would be 75.
+  check('the KB headline is untouched by the CRM score (88, not the blended 75)', sep.kbHead===88, JSON.stringify(sep));
+  check('the CRM headline is the CRM score', sep.crmHead===50, JSON.stringify(sep));
 
-  // the labels that used to say "Paper"
+  // the dashboard follows the top-bar area
+  await p.evaluate(()=>{document.getElementById('weekFilter').value='2026-10-03';});
+  await p.evaluate(()=>setView('dashboard'));
+  check('the area switch is shown on the dashboard', await p.isVisible('#boardAreaBar'));
+  await p.click('#boardAreaButtons .seg[data-area="Basic Real Estate KB"]'); await p.waitForTimeout(300);
+  check('the pressed button matches the board', await p.getAttribute('#boardAreaButtons .seg[data-area="Basic Real Estate KB"]','aria-pressed')==='true');
+  check('KB board headline shows 88%', (await p.textContent('#companyScore')).trim()==='88%', await p.textContent('#companyScore'));
+  check('the coverage line names the area', /in Basic Real Estate KB/.test(await p.textContent('#coverageText')), await p.textContent('#coverageText'));
+  await p.click('#boardAreaButtons .seg[data-area="CRM Usage"]'); await p.waitForTimeout(300);
+  check('CRM board headline shows 50%', (await p.textContent('#companyScore')).trim()==='50%', await p.textContent('#companyScore'));
+
+  // the Agents table on the CRM board shows the CRM note, unprefixed
   await p.evaluate(()=>setView('agents')); await p.waitForTimeout(300);
   const cell=await p.$$eval('#agentsBody tr',rs=>{const r=rs.find(x=>x.children[0].textContent==='Kirti');return r?r.children[4].textContent:'';});
-  check('the Agents table labels the comment with its area', /^CRM: forgets to log calls$/.test(cell), cell);
+  check('the Agents table shows that area\'s note', cell==='forgets to log calls', cell);
   check('nothing is labelled "Paper" any more', !/Paper/.test(await p.textContent('#view-agents')));
+
+  // Assess opens on whichever area the board is showing
+  await p.evaluate(()=>setView('assess')); await p.waitForTimeout(300);
+  check('Assess opens on the board\'s area', (await p.inputValue('#assessArea'))==='CRM Usage');
+  check('the board switch steps aside on Assess (it has its own picker)', await p.isHidden('#boardAreaBar'));
 
   await p.evaluate(()=>setView('dashboard')); await p.waitForTimeout(300);
   check('the per-area dashboard panels are back (checked ON the dashboard)',
@@ -208,6 +235,9 @@ console.log('4. A reload does not fold CRM back into KB');
     tag:(e.querySelector('.prev-tag')||{}).textContent}));
   check('the CRM grid marks last week\'s CRM level, not the KB one', prev.lvl==='Weak', JSON.stringify(prev));
   check('and needs no area label since it is the same area', !/\(/.test(prev.tag||''), JSON.stringify(prev));
+  // Sadaf has a KB score only. Her CRM grid must show NO marker - not her KB level.
+  const sadafCrm=await p.$eval('#weeklyGrid [data-agent="Sadaf"]',e=>!!e.querySelector('.level-btn.prev'));
+  check('an agent with KB history only gets no marker on the CRM grid', sadafCrm===false);
   await p.context().close();
 }
 
@@ -236,6 +266,22 @@ console.log('5. Per-area counts never exceed the roster');
   check('the area score matches the headline score when one area has data',
     row && row.score===headline+'%', JSON.stringify(row)+' headline='+headline);
   await p.context().close();
+}
+
+// ==========================================================
+console.log('6. The header stays on one row');
+{
+  // the first version of the area switch sat in the header and pushed it onto
+  // two rows at every width from 1536px down
+  for(const w of [1680,1536,1440,1366]){
+    const p=await (await b.newContext({viewport:{width:w,height:800}})).newPage();
+    await p.goto('http://localhost:8961/'); await p.waitForTimeout(200);
+    await p.fill('#gateInput','Kirpa@2026'); await p.click('#gateBtn'); await p.waitForTimeout(700);
+    const m=await p.evaluate(()=>{const t=document.querySelector('.title-wrap').getBoundingClientRect(),
+      a=document.querySelector('.top-actions').getBoundingClientRect();return {oneRow:a.top<t.bottom};});
+    check('header is one row at '+w+'px', m.oneRow, JSON.stringify(m));
+    await p.context().close();
+  }
 }
 
 console.log('');
