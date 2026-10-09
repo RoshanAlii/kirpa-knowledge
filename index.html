@@ -186,7 +186,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="sidebar-bottom">
     <button class="bottom-link" data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12h3M2 12h3M12 2v3M12 19v3M17 7l2-2M5 19l2-2M17 17l2 2M5 5l2 2"/></svg>Settings</button>
     <button class="bottom-link" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Logout</button>
-    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.6 · Paper baseline</div>
+    <div class="sidebar-version">KIRPA KNOWLEDGE<br>v2.7 · Paper baseline</div>
   </div>
 </aside>
 <main class="main">
@@ -401,6 +401,14 @@ function collapseAreas(v){
   v.records=out;
   return true;
 }
+// A leader has to be on her own team's roster to be rated where leaders are
+// rated (CRM Usage). Team Manpreet Ma'am was created without her on it.
+// Idempotent: only adds a missing leader, never moves or removes anyone.
+function ensureLeadersOnRoster(v){
+  let changed=false;
+  (v.teams||[]).forEach(t=>{if(t.leader&&Array.isArray(t.members)&&!t.members.includes(t.leader)){t.members.unshift(t.leader);changed=true}});
+  return changed;
+}
 let state=loadState();
 function normalizeState(v){
   if(!v||!Array.isArray(v.teams)||!Array.isArray(v.records))return initialState();
@@ -409,14 +417,21 @@ function normalizeState(v){
   v.inactive=v.inactive||[]; v.version=3;
   if(mergeWeeks(v)) migrationPending=true;
   if(collapseAreas(v)) migrationPending=true;
+  if(ensureLeadersOnRoster(v)) migrationPending=true;
   return v;
 }
 function loadState(){try{const v=JSON.parse(localStorage.getItem(STORE)||'null');return normalizeState(v)}catch(e){return initialState()}}
 function saveState(){localStorage.setItem(STORE,JSON.stringify(state))}
-// Team leaders run the assessment, they are not rated in it. They drop out of
-// the assess grid, every coverage denominator and the not-assessed lists, but
-// stay on the Admin roster and in each team card header as "TL - <name>".
-function activeMembers(teamName='ALL'){const arr=[];state.teams.forEach(t=>{if(teamName!=='ALL'&&t.name!==teamName)return;t.members.forEach(m=>{if(m===t.leader)return;if(!state.inactive.includes(t.name+'|'+m))arr.push({team:t.name,agent:m,leader:t.leader})})});return arr}
+// In Basic Real Estate KB team leaders run the assessment and are not rated:
+// they drop out of the assess grid, every coverage denominator and the
+// not-assessed lists, but stay on the Admin roster and in each team card header
+// as "TL - <name>". In CRM Usage they are rated like everyone else.
+// Who is rated depends on the area. Basic Real Estate KB: the leader runs the
+// test, so leaders are not rated. CRM Usage: everyone works in the CRM, so the
+// leader is tested alongside the team.
+const AREAS_RATING_LEADERS=['CRM Usage'];
+function leadersRated(area){return AREAS_RATING_LEADERS.includes(area)}
+function activeMembers(teamName='ALL',area=boardArea()){const withLeaders=leadersRated(area);const arr=[];state.teams.forEach(t=>{if(teamName!=='ALL'&&t.name!==teamName)return;t.members.forEach(m=>{if(m===t.leader&&!withLeaders)return;if(!state.inactive.includes(t.name+'|'+m))arr.push({team:t.name,agent:m,leader:t.leader})})});return arr}
 function allWeeks(){const w=[...new Set(state.records.map(r=>r.week))].sort().reverse();return w.length?w:[PAPER_WEEK]}
 function fmtWeek(w){const d=new Date(w+'T12:00:00');return 'Week ending: '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
 function selectedWeek(){return document.getElementById('weekFilter').value||allWeeks()[0]}
@@ -435,7 +450,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function boardArea(){const el=document.getElementById('areaFilter');return (el&&el.value)||AREAS[0]}
 function recordsFor(week,team='ALL',area=boardArea()){return state.records.filter(r=>r.week===week&&(team==='ALL'||r.team===team)&&r.level&&r.area===area)}
 function agentSummaries(week,team='ALL',area=boardArea()){
-  const members=activeMembers(team), recs=recordsFor(week,team,area), grouped=new Map();
+  const members=activeMembers(team,area), recs=recordsFor(week,team,area), grouped=new Map();
   recs.forEach(r=>{const k=r.team+'|'+r.agent;if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(r)});
   return members.map(m=>{const rs=grouped.get(m.team+'|'+m.agent)||[];if(!rs.length)return{...m,assessed:false,records:[]};const score=avgNum(rs.map(r=>SCORES[r.level]));return{...m,assessed:true,records:rs,score,level:levelFromScore(score)}});
 }
@@ -467,17 +482,16 @@ function renderDistribution(count){const mx=Math.max(5,...Object.values(count));
 // past its own roster (the dashboard once read "37/32"), and must not pull the
 // area score away from the headline score, which already uses this rule.
 function areaStats(week,team='ALL'){
-  const active=new Set(activeMembers(team).map(m=>m.team+'|'+m.agent));
   return AREAS.map(area=>{
+    const members=activeMembers(team,area), active=new Set(members.map(m=>m.team+'|'+m.agent));
     const rs=state.records.filter(r=>r.week===week&&r.area===area&&r.level&&active.has(r.team+'|'+r.agent));
-    return{area,score:rs.length?avgNum(rs.map(r=>SCORES[r.level])):null,count:rs.length};
+    return{area,score:rs.length?avgNum(rs.map(r=>SCORES[r.level])):null,count:rs.length,roster:members.length};
   });
 }
 function renderAreaScores(week,team){
-  const roster=activeMembers(team).length;
   document.getElementById('teamScores').innerHTML=areaStats(week,team).map(x=>{
-    const short=roster&&x.count<roster;
-    return `<div class="area-row"><span>${esc(x.area)}</span><div class="progress"><i style="width:${x.score||0}%"></i></div><span class="area-n${short?' short':''}" title="agents scored in this area">${x.count}/${roster}</span><b>${x.score===null?'—':x.score+'%'}</b></div>`;
+    const short=x.roster&&x.count<x.roster;
+    return `<div class="area-row"><span>${esc(x.area)}</span><div class="progress"><i style="width:${x.score||0}%"></i></div><span class="area-n${short?' short':''}" title="agents scored in this area">${x.count}/${x.roster}</span><b>${x.score===null?'—':x.score+'%'}</b></div>`;
   }).join('');
 }
 function renderGaps(week,team){const stats=areaStats(week,team).slice().sort((a,b)=>(a.score??101)-(b.score??101));document.getElementById('trainingGaps').innerHTML=stats.map((x,i)=>`<div class="gap-row"><span class="rank r${i+1}">${i+1}</span><span>${esc(x.area)}</span><b class="${i===0?'c-red':i===1?'c-orange':i===2?'c-olive':'c-green'}">${x.score===null?'—':x.score+'%'}</b></div>`).join('')}
@@ -508,7 +522,7 @@ function renderAssessmentGrid(){
         area=document.getElementById('assessArea').value,
         t=state.teams.find(x=>x.name===team);
   if(!t)return;
-  const roster=activeMembers(team).map(m=>m.agent);   // same rule as every count: no leaders, no deactivated agents
+  const roster=activeMembers(team,area).map(m=>m.agent);   // same rule as every count for this area: deactivated agents out; leaders only where the area rates them
   const anyHistory=roster.some(a=>previousRecordFor(week,team,a,area));
   const grid=document.getElementById('weeklyGrid');
   grid.classList.toggle('has-history',anyHistory);

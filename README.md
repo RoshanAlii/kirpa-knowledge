@@ -13,8 +13,8 @@ Hosted on GitHub Pages; shared data lives in a Google Sheet via a small Apps Scr
 
 ## 1. What it does
 
-- 40-agent roster across 6 teams, each with a team leader. **Team leaders are not rated** - they
-  run the assessment, so they never appear in the assess grid or in any coverage figure.
+- 40-agent roster across 6 teams, each with a team leader. **Team leaders are not rated in Basic
+  Real Estate KB** (they run that test), but **are rated in CRM Usage** alongside their team.
 - Weekly assessment entry per team, per knowledge area, on a 4-point scale
   (Poor 25% / Weak 50% / Good 75% / Very Good 100%)
 - Five knowledge areas: Objection Handling · Investment / ROI · Dubai Area & Market ·
@@ -209,6 +209,7 @@ node qa-amend-past-week.mjs      # correcting a rating in a past week
 node qa-leaders-and-merge.mjs    # week merge + team leaders excluded from rating
 node qa-ui-audit.mjs             # layout audit: clipped text, overflow, tap targets, at 6 widths
 node qa-single-area.mjs          # the five categories collapsed into one, without duplicating
+node qa-crm-leaders.mjs          # leaders rated in CRM Usage only
 ```
 
 `qa-race.mjs` samples state continuously rather than only at the end - a revert that a later poll
@@ -231,3 +232,4 @@ numbers, so a maths regression fails the suite rather than agreeing with itself.
 | `qa-leaders-and-merge.mjs` | Week merge and team-leader exclusion |
 | `qa-ui-audit.mjs` | Layout audit across 7 views x 6 widths |
 | `qa-single-area.mjs` | Category collapse: no duplicates, nothing lost |
+| `qa-crm-leaders.mjs` | Leaders rated in CRM Usage, not in KB |

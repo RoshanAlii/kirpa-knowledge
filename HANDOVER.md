@@ -30,7 +30,7 @@ Status: **one-week pilot**, deliberately temporary. Not a permanent system.
 The Sheet and Script live in Ali's **roshan@kirpaproperties.com** Google account. The web app runs
 as that account ("Execute as: Me", "Who has access: Anyone"), so team leaders never need Sheet access.
 
-Current versions: `index.html` **v2.6**, Apps Script deployment **Version 5**.
+Current versions: `index.html` **v2.7**, Apps Script deployment **Version 5**.
 
 ### Repo files
 | File | Purpose |
@@ -47,6 +47,7 @@ Current versions: `index.html` **v2.6**, Apps Script deployment **Version 5**.
 | `qa-leaders-and-merge.mjs` | The 11-into-12 Sep week merge and the team-leader exclusion |
 | `qa-ui-audit.mjs` | Layout audit - clipped text, overflow, tap targets, across 7 views x 6 widths |
 | `qa-single-area.mjs` | Category collapse; CRM Usage kept separate in storage AND in every score |
+| `qa-crm-leaders.mjs` | Leaders rated in CRM Usage, not in Basic Real Estate KB; leader roster repair |
 
 Run any suite with `node <file>.mjs` (needs `npm i playwright && npx playwright install chromium`).
 They spin up a local copy of `index.html` plus a mock Apps Script — **nothing touches the live sheet.**
@@ -168,9 +169,14 @@ Each of these was a real bug found in testing. Do not "simplify" them away.
   team + area, re-score, save. Updates in place.
 - **Previous-level marker**: the dashed button shows where that agent stood last time — same area if
   available, otherwise their most recent record in any area, labelled.
-- **Team leaders are never rated.** `activeMembers()` skips any member whose name equals their
-  team's `leader`, so leaders are absent from the assess grid, every coverage denominator and the
-  not-assessed lists. They stay on the Admin roster (flagged "Yes") and in each team card header as
+- **Team leaders: rated per area.** `activeMembers(team, area)` skips a member whose name equals
+  their team's `leader` **unless the area is in `AREAS_RATING_LEADERS` (currently only `CRM Usage`)**.
+  So in Basic Real Estate KB leaders are absent from the assess grid, every coverage denominator and
+  the not-assessed lists; in CRM Usage they are scored like everyone else (grid row says "Team
+  leader"). The Assess grid uses the Assess picker's area, the boards use the "Showing" area, and
+  `areaStats()` returns a roster size per area (dashboard reads e.g. KB 27/32, CRM n/39).
+  `ensureLeadersOnRoster()` (in `normalizeState`) adds a leader to her own `members` if missing -
+  Team Manpreet Ma'am was created without her. Leaders stay on the Admin roster (flagged "Yes") and in each team card header as
   "TL · <name>". Matching is exact, so "Priyanka Sunil" is unaffected by leader "Priyanka".
 - **Removing someone from rating**: Admin → Deactivate. Their records stay in the sheet and in
   their history modal; they simply leave the roster and the counts. Reactivate puts them back.
